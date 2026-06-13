@@ -47,6 +47,23 @@ Beta (requires Alpha)
 └── 09 Distribution (Steam, monetisation)
 ```
 
+## Alpha vertical slices (issues #10–#21)
+
+| Issue | Slice | Blocked by |
+|-------|-------|------------|
+| [#10](https://github.com/Mythirion/agentic-afker/issues/10) | Tauri scaffold with Agent Overlay | — |
+| [#11](https://github.com/Mythirion/agentic-afker/issues/11) | Tray minimise and restore | #10 |
+| [#12](https://github.com/Mythirion/agentic-afker/issues/12) | Interact Mode hotkey | #10 |
+| [#13](https://github.com/Mythirion/agentic-afker/issues/13) | Game Window opens alongside Overlay | #10, #12 |
+| [#14](https://github.com/Mythirion/agentic-afker/issues/14) | Scraping idle loop end-to-end | #13 |
+| [#15](https://github.com/Mythirion/agentic-afker/issues/15) | Labelling unlock and Token economy | #14 |
+| [#16](https://github.com/Mythirion/agentic-afker/issues/16) | Fine-Tuning completes Data Pipeline chain | #15 |
+| [#17](https://github.com/Mythirion/agentic-afker/issues/17) | Upgrade shop | #15 |
+| [#18](https://github.com/Mythirion/agentic-afker/issues/18) | Agent appearance — Form Stages and Equipment | #14 |
+| [#19](https://github.com/Mythirion/agentic-afker/issues/19) | Milestone popups on Overlay | #14, #18 |
+| [#20](https://github.com/Mythirion/agentic-afker/issues/20) | Offline catch-up on relaunch | #14 |
+| [#21](https://github.com/Mythirion/agentic-afker/issues/21) | Windows build artifact | #16 |
+
 ## Suggested issue breakdown order (Alpha)
 
 1. Desktop Shell — nothing works without windows
