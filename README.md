@@ -14,22 +14,31 @@ npm run tauri dev
 
 ## Branches and CI
 
-| Branch | CI on push/PR | Desktop builds |
-|--------|---------------|----------------|
-| `main` | Yes — `npm test`, `npm run build`, `cargo test` | No |
-| `staging` | No automatic builds | Manual via **Actions → Staging build** |
+```
+feature/* ──PR──▶ staging ──PR (occasional)──▶ main
+                  │
+                  └── manual Windows build (Actions → Staging build)
+```
 
-**Main (`ci.yml`)** runs on every push to `main` and on pull requests. Fast checks only — no Windows bundle.
+| Branch | Role | CI | Desktop builds |
+|--------|------|----|----------------|
+| `feature/*` | Day-to-day work | On PR → `staging` | No |
+| `staging` | Integration / playtest | On push and on PR → `main` | Manual |
+| `main` | Stable / release | On push (after promotion) | No |
 
-**Staging (`staging-build.yml`)** is manual. In GitHub: **Actions → Staging build → Run workflow**. Defaults to the `staging` branch; you can pass any branch, tag, or SHA. Produces a Windows `.zip` artifact (retained 30 days).
+**CI (`ci.yml`)** runs fast checks only — `npm test`, `npm run build`, `cargo test`. Triggers on:
 
-Create the staging branch when ready:
+- PRs targeting `staging` (feature work)
+- PRs targeting `main` (promoting staging)
+- Pushes to `staging` or `main`
+
+**Staging build (`staging-build.yml`)** is manual. When `staging` has something you want to playtest on Windows: **Actions → Staging build → Run workflow** (defaults to the `staging` branch). Produces a `.zip` artifact retained 30 days.
+
+After the first merge to `main`, create `staging` and set it as the default branch in GitHub (**Settings → General → Default branch**):
 
 ```bash
-git checkout main
-git pull
-git checkout -b staging
-git push -u origin staging
+git checkout main && git pull
+git checkout -b staging && git push -u origin staging
 ```
 
 ## Docs
