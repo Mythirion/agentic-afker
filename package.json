@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:windows-portable": "bash scripts/build-windows-portable.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

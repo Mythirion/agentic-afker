@@ -27,5 +27,13 @@ mod tests {
             workflow.contains("path: ${{ env.STAGE_DIR }}"),
             "artifact path should be the staged directory"
         );
+        assert!(
+            !workflow.contains("ARCHIVE_NAME"),
+            "artifact name should not reference a pre-built zip file"
+        );
+        assert!(
+            workflow.contains("Name must not end in .zip"),
+            "workflow should document single-level GitHub artifact zips"
+        );
     }
 }
