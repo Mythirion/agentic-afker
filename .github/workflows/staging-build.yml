@@ -1,0 +1,71 @@
+name: Staging build
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: Branch, tag, or SHA to build
+        required: true
+        default: staging
+        type: string
+      artifact_label:
+        description: Optional label suffix for the downloaded artifact
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: staging-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows desktop bundle
+    runs-on: windows-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Windows bundle
+        run: npm run tauri build
+        env:
+          CI: true
+
+      - name: Package bundle
+        shell: pwsh
+        run: |
+          $bundleRoot = "src-tauri/target/release/bundle"
+          $nsisDir = Get-ChildItem -Path $bundleRoot -Filter *.exe -Recurse |
+            Select-Object -First 1 -ExpandProperty DirectoryName
+          if (-not $nsisDir) {
+            throw "No .exe bundle found under $bundleRoot"
+          }
+          $archiveName = "agentic-afker-windows-staging"
+          if ("${{ inputs.artifact_label }}" -ne "") {
+            $archiveName += "-${{ inputs.artifact_label }}"
+          }
+          $archiveName += "-${{ github.sha }}"
+          Compress-Archive -Path "$nsisDir/*" -DestinationPath "$archiveName.zip"
+          "ARCHIVE_NAME=$archiveName.zip" >> $env:GITHUB_ENV
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 30
