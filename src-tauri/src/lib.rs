@@ -1,4 +1,5 @@
 mod app_shell_state;
+mod commands;
 #[cfg(desktop)]
 mod hotkey_registry;
 mod interact_mode;
@@ -8,13 +9,14 @@ mod window_config;
 mod window_manager;
 
 use app_shell_state::AppShellState;
+use commands::open_game_window;
 #[cfg(desktop)]
 use hotkey_registry::register_interact_mode_hotkey;
 use interact_mode::{InteractMode, InteractModeState};
 use tauri::Manager;
 use tray_controller::{build_tray, handle_exit_requested, handle_window_event, ShellState};
 use window_config::overlay_window_spec;
-use window_manager::apply_overlay_interact_mode;
+use window_manager::{apply_overlay_interact_mode, handle_game_window_event};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,7 +33,11 @@ pub fn run() {
     }
 
     builder
-        .on_window_event(|window, event| handle_window_event(window, event))
+        .invoke_handler(tauri::generate_handler![open_game_window])
+        .on_window_event(|window, event| {
+            handle_window_event(window, event);
+            handle_game_window_event(window, event);
+        })
         .setup(move |app| {
             build_tray(app.handle())?;
 
