@@ -42,29 +42,37 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Build Windows app bundle (no installer)
-        run: npm run tauri build -- --bundles app
+      - name: Build Windows release binary (no installer)
+        run: npm run tauri build -- --no-bundle
         env:
           CI: true
 
       - name: Package portable zip
         shell: pwsh
         run: |
-          $appBundleRoot = "src-tauri/target/release/bundle/app"
-          if (-not (Test-Path $appBundleRoot)) {
-            throw "App bundle not found at $appBundleRoot"
+          $releaseDir = "src-tauri/target/release"
+          $exe = Join-Path $releaseDir "agentic-afker.exe"
+          if (-not (Test-Path $exe)) {
+            throw "Release binary not found at $exe"
           }
-          $appDir = Get-ChildItem -Path $appBundleRoot -Directory |
-            Select-Object -First 1
-          if (-not $appDir) {
-            throw "No app directory found under $appBundleRoot"
+
+          $stageDir = "agentic-afker-portable"
+          New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+          Copy-Item $exe $stageDir
+
+          # WebView2 loader and any sidecar DLLs Tauri places beside the exe
+          Get-ChildItem -Path $releaseDir -Filter "*.dll" | Copy-Item -Destination $stageDir
+
+          if (Test-Path "$releaseDir/resources") {
+            Copy-Item "$releaseDir/resources" $stageDir -Recurse
           }
+
           $archiveName = "agentic-afker-windows-portable"
           if ("${{ inputs.artifact_label }}" -ne "") {
             $archiveName += "-${{ inputs.artifact_label }}"
           }
           $archiveName += "-${{ github.sha }}"
-          Compress-Archive -Path "$($appDir.FullName)/*" -DestinationPath "$archiveName.zip"
+          Compress-Archive -Path "$stageDir/*" -DestinationPath "$archiveName.zip"
           "ARCHIVE_NAME=$archiveName.zip" >> $env:GITHUB_ENV
 
       - name: Upload Windows artifact

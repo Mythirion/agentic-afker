@@ -18,7 +18,7 @@ You do **not** need Node/npm on Windows to test builds. CI produces a portable z
 
 1. Run **Actions → Staging build** on the branch you want (defaults to `staging`).
 2. Open the completed workflow run on GitHub → **Artifacts** → download the `.zip`.
-3. Unzip the folder and run `Agentic Afker.exe` inside.
+3. Unzip and run `agentic-afker.exe` (requires [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — preinstalled on Windows 10/11).
 
 Use Windows only as a playtest target; keep coding on your Linux box.
 
@@ -49,7 +49,7 @@ Runs only when:
 
 Does **not** run on push (merge already passed the PR checks).
 
-**Staging build (`staging-build.yml`)** — manual only, never on push. **Actions → Staging build → Run workflow** produces a portable Windows `.zip` (no NSIS installer). Artifact retained 30 days.
+**Staging build (`staging-build.yml`)** — manual only, never on push. **Actions → Staging build → Run workflow** builds a release binary with `--no-bundle` (no NSIS wizard) and zips it as a portable `.zip`. Artifact retained 30 days.
 
 After the first merge to `main`, create `staging` and set it as the default branch in GitHub (**Settings → General → Default branch**):
 
