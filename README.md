@@ -4,13 +4,27 @@ Desktop companion idle game — train an Agent through the AI boom.
 
 ## Development
 
-Prerequisites: [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
+Dev on Linux (or any machine with Node + Rust). [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
 
 ```bash
 npm install
 npm test
 npm run tauri dev
 ```
+
+### Windows playtest (no npm required)
+
+You do **not** need Node/npm on Windows to test builds. CI produces a ready-to-run bundle:
+
+1. Merge to `staging` (or run **Actions → Staging build** on the branch you want).
+2. Open the completed workflow run on GitHub → **Artifacts** → download the `.zip`.
+3. Unzip and run the `.exe` inside.
+
+Use Windows only as a playtest target; keep coding on your Linux box.
+
+### Windows local dev (optional)
+
+Only if you want `npm run tauri dev` on Windows: install [Node.js LTS](https://nodejs.org/) (includes npm), [Rust](https://rustup.rs/), and the [Tauri Windows prerequisites](https://tauri.app/start/prerequisites/).
 
 ## Branches and CI
 
