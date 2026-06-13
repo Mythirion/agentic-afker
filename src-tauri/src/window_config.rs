@@ -65,4 +65,17 @@ mod tests {
         assert_eq!(overlay["alwaysOnTop"], true);
         assert_eq!(overlay["decorations"], false);
     }
+
+    #[test]
+    fn tauri_config_declares_tray_icon() {
+        let config_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json");
+        let config: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(config_path).expect("read tauri config"))
+                .expect("parse tauri config");
+
+        assert!(
+            config["app"]["trayIcon"]["iconPath"].is_string(),
+            "tray icon should be configured for system tray visibility"
+        );
+    }
 }
