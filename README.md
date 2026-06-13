@@ -14,11 +14,11 @@ npm run tauri dev
 
 ### Windows playtest (no npm required)
 
-You do **not** need Node/npm on Windows to test builds. CI produces a ready-to-run bundle:
+You do **not** need Node/npm on Windows to test builds. CI produces a portable zip (no installer wizard):
 
-1. Merge to `staging` (or run **Actions → Staging build** on the branch you want).
+1. Run **Actions → Staging build** on the branch you want (defaults to `staging`).
 2. Open the completed workflow run on GitHub → **Artifacts** → download the `.zip`.
-3. Unzip and run the `.exe` inside.
+3. Unzip the folder and run `Agentic Afker.exe` inside.
 
 Use Windows only as a playtest target; keep coding on your Linux box.
 
@@ -36,17 +36,20 @@ feature/* ──PR──▶ staging ──PR (occasional)──▶ main
 
 | Branch | Role | CI | Desktop builds |
 |--------|------|----|----------------|
-| `feature/*` | Day-to-day work | On PR → `staging` | No |
-| `staging` | Integration / playtest | On push and on PR → `main` | Manual |
-| `main` | Stable / release | On push (after promotion) | No |
+| `feature/*` | Day-to-day work | On PR → `staging` (code paths only) | No |
+| `staging` | Integration / playtest | On PR → `main` only | Manual |
+| `main` | Stable / release | On PR → `main` when promoting | No |
 
-**CI (`ci.yml`)** runs fast checks only — `npm test`, `npm run build`, `cargo test`. Triggers on:
+**CI (`ci.yml`)** — one Ubuntu job per PR: `npm test`, `npm run build`, `cargo test`.
 
-- PRs targeting `staging` (feature work)
-- PRs targeting `main` (promoting staging)
-- Pushes to `staging` or `main`
+Runs only when:
 
-**Staging build (`staging-build.yml`)** is manual. When `staging` has something you want to playtest on Windows: **Actions → Staging build → Run workflow** (defaults to the `staging` branch). Produces a `.zip` artifact retained 30 days.
+- A PR targets `staging` or `main`
+- Changed files are under `src/`, `src-tauri/`, or build config (docs-only PRs skip CI)
+
+Does **not** run on push (merge already passed the PR checks).
+
+**Staging build (`staging-build.yml`)** — manual only, never on push. **Actions → Staging build → Run workflow** produces a portable Windows `.zip` (no NSIS installer). Artifact retained 30 days.
 
 After the first merge to `main`, create `staging` and set it as the default branch in GitHub (**Settings → General → Default branch**):
 

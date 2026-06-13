@@ -1,5 +1,6 @@
 name: Staging build
 
+# Manual only — Windows builds are expensive; never run on push.
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +21,7 @@ concurrency:
 
 jobs:
   windows:
-    name: Windows desktop bundle
+    name: Windows portable bundle
     runs-on: windows-latest
     environment: staging
     steps:
@@ -41,26 +42,29 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Build Windows bundle
-        run: npm run tauri build
+      - name: Build Windows app bundle (no installer)
+        run: npm run tauri build -- --bundles app
         env:
           CI: true
 
-      - name: Package bundle
+      - name: Package portable zip
         shell: pwsh
         run: |
-          $bundleRoot = "src-tauri/target/release/bundle"
-          $nsisDir = Get-ChildItem -Path $bundleRoot -Filter *.exe -Recurse |
-            Select-Object -First 1 -ExpandProperty DirectoryName
-          if (-not $nsisDir) {
-            throw "No .exe bundle found under $bundleRoot"
+          $appBundleRoot = "src-tauri/target/release/bundle/app"
+          if (-not (Test-Path $appBundleRoot)) {
+            throw "App bundle not found at $appBundleRoot"
           }
-          $archiveName = "agentic-afker-windows-staging"
+          $appDir = Get-ChildItem -Path $appBundleRoot -Directory |
+            Select-Object -First 1
+          if (-not $appDir) {
+            throw "No app directory found under $appBundleRoot"
+          }
+          $archiveName = "agentic-afker-windows-portable"
           if ("${{ inputs.artifact_label }}" -ne "") {
             $archiveName += "-${{ inputs.artifact_label }}"
           }
           $archiveName += "-${{ github.sha }}"
-          Compress-Archive -Path "$nsisDir/*" -DestinationPath "$archiveName.zip"
+          Compress-Archive -Path "$($appDir.FullName)/*" -DestinationPath "$archiveName.zip"
           "ARCHIVE_NAME=$archiveName.zip" >> $env:GITHUB_ENV
 
       - name: Upload Windows artifact

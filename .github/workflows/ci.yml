@@ -1,33 +1,37 @@
 name: CI
 
+# PRs only — avoids duplicate runs on merge push. Skips docs-only changes.
 on:
-  push:
-    branches: [main, staging]
   pull_request:
     branches: [staging, main]
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "index.html"
+      - ".github/workflows/ci.yml"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  frontend:
+  check:
+    name: Test and build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
 
-  rust:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+
       - name: Install Tauri Linux dependencies
         run: |
           sudo apt-get update
@@ -36,11 +40,9 @@ jobs:
             libgtk-3-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+
       - run: npm ci
+      - run: npm test
       - run: npm run build
       - run: cargo test
         working-directory: src-tauri
