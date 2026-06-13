@@ -47,7 +47,7 @@ jobs:
         env:
           CI: true
 
-      - name: Package portable zip
+      - name: Stage portable bundle
         shell: pwsh
         run: |
           $releaseDir = "src-tauri/target/release"
@@ -67,17 +67,22 @@ jobs:
             Copy-Item "$releaseDir/resources" $stageDir -Recurse
           }
 
-          $archiveName = "agentic-afker-windows-portable"
-          if ("${{ inputs.artifact_label }}" -ne "") {
-            $archiveName += "-${{ inputs.artifact_label }}"
+          if (Get-ChildItem -Path $stageDir -Filter "*.zip" -Recurse) {
+            throw "Refusing to upload nested zip inside staged portable bundle"
           }
-          $archiveName += "-${{ github.sha }}"
-          Compress-Archive -Path "$stageDir/*" -DestinationPath "$archiveName.zip"
-          "ARCHIVE_NAME=$archiveName.zip" >> $env:GITHUB_ENV
+
+          $artifactName = "agentic-afker-windows-portable"
+          if ("${{ inputs.artifact_label }}" -ne "") {
+            $artifactName += "-${{ inputs.artifact_label }}"
+          }
+          $artifactName += "-${{ github.sha }}"
+          "ARTIFACT_NAME=$artifactName" >> $env:GITHUB_ENV
+          "STAGE_DIR=$stageDir" >> $env:GITHUB_ENV
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARCHIVE_NAME }}
-          path: ${{ env.ARCHIVE_NAME }}
+          # Name must not end in .zip — GitHub wraps the download in a zip already.
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.STAGE_DIR }}
           retention-days: 30

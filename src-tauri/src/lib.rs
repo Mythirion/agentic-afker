@@ -1,3 +1,4 @@
+mod staging_build;
 mod window_config;
 
 use tauri::Manager;
