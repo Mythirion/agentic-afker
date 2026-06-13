@@ -1,20 +1,36 @@
 mod app_shell_state;
+#[cfg(desktop)]
+mod hotkey_registry;
+mod interact_mode;
 mod staging_build;
 mod tray_controller;
 mod window_config;
+mod window_manager;
 
 use app_shell_state::AppShellState;
+#[cfg(desktop)]
+use hotkey_registry::register_interact_mode_hotkey;
+use interact_mode::{InteractMode, InteractModeState};
 use tauri::Manager;
 use tray_controller::{build_tray, handle_exit_requested, handle_window_event, ShellState};
 use window_config::overlay_window_spec;
+use window_manager::apply_overlay_interact_mode;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let overlay = overlay_window_spec();
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(ShellState::new(AppShellState::OverlayVisible))
+        .manage(InteractModeState::new(InteractMode::default()));
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    }
+
+    builder
         .on_window_event(|window, event| handle_window_event(window, event))
         .setup(move |app| {
             build_tray(app.handle())?;
@@ -26,6 +42,11 @@ pub fn run() {
             window
                 .set_title(overlay.title)
                 .expect("set overlay title");
+
+            apply_overlay_interact_mode(app.handle(), InteractMode::default())?;
+
+            #[cfg(desktop)]
+            register_interact_mode_hotkey(app.handle())?;
 
             Ok(())
         })
