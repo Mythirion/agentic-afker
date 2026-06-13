@@ -1,5 +1,6 @@
 mod window_config;
 
+use tauri::Manager;
 use window_config::overlay_window_spec;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
