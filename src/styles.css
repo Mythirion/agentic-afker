@@ -218,6 +218,11 @@ body,
   color: rgba(255, 255, 255, 0.8);
 }
 
+.skill-row__resource {
+  font-size: 13px;
+  color: #9fd4ff;
+}
+
 .skill-row__progress-wrap {
   display: flex;
   flex-direction: column;

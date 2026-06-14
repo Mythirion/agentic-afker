@@ -13,6 +13,7 @@ export interface SkillSnapshot {
   isActive: boolean;
   isLocked: boolean;
   prerequisite?: string;
+  rawData: number;
 }
 
 export interface GameWindowSnapshot {
@@ -132,6 +133,11 @@ function renderSkillRow(skill: SkillSnapshot): string {
           ${skill.xpIntoLevel} / ${skill.xpToNextLevel} XP
         </span>
       </div>
+      ${
+        skill.id === "scraping"
+          ? `<span class="skill-row__resource" data-testid="skill-raw-data-${skill.id}">Raw data: ${skill.rawData}</span>`
+          : ""
+      }
       ${
         skill.isActive
           ? ""

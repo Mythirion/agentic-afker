@@ -184,6 +184,7 @@ mod tests {
 
         assert_eq!(loaded.scraping().xp, state.scraping().xp);
         assert_eq!(loaded.scraping().level, state.scraping().level);
+        assert_eq!(loaded.scraping().resources, state.scraping().resources);
         assert_eq!(loaded.last_tick_at, 3_500);
         assert_eq!(loaded.active_skill, SkillId::scraping());
     }

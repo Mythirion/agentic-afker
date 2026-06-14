@@ -19,6 +19,7 @@ const scrapingSnapshot: GameWindowSnapshot = {
       levelProgress: 50 / 300,
       isActive: true,
       isLocked: false,
+      rawData: 0,
     },
   ],
   tokens: 0,
@@ -58,6 +59,7 @@ describe("mountGameWindow", () => {
           levelProgress: 0,
           isActive: false,
           isLocked: false,
+          rawData: 0,
         },
       ],
       tokens: 0,
@@ -89,6 +91,7 @@ describe("mountGameWindow", () => {
           levelProgress: 0,
           isActive: false,
           isLocked: false,
+          rawData: 0,
         },
       ],
       tokens: 0,
@@ -120,6 +123,7 @@ describe("mountGameWindow", () => {
           levelProgress: 0.5,
           isActive: true,
           isLocked: false,
+          rawData: 0,
         },
       ],
     };
@@ -166,6 +170,7 @@ describe("mountGameWindow", () => {
           levelProgress: 0,
           isActive: true,
           isLocked: false,
+          rawData: 17,
         },
         {
           id: "labelling",
@@ -177,6 +182,7 @@ describe("mountGameWindow", () => {
           isActive: false,
           isLocked: true,
           prerequisite: "Requires Scraping Lv 5",
+          rawData: 0,
         },
       ],
       tokens: 12,
@@ -190,5 +196,47 @@ describe("mountGameWindow", () => {
       root.querySelector('[data-testid="skill-prerequisite-labelling"]')?.textContent?.trim(),
     ).toBe("Requires Scraping Lv 5");
     expect(root.querySelector('[data-testid="start-skill-labelling"]')).toBeNull();
+  });
+
+  it("renders scraping raw data on the skill row", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "scraping",
+      skills: [
+        {
+          id: "scraping",
+          level: 2,
+          xp: 150,
+          xpIntoLevel: 50,
+          xpToNextLevel: 300,
+          levelProgress: 50 / 300,
+          isActive: true,
+          isLocked: false,
+          rawData: 42,
+        },
+        {
+          id: "labelling",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: true,
+          prerequisite: "Requires Scraping Lv 5",
+          rawData: 0,
+        },
+      ],
+      tokens: 0,
+      totalLevel: 2,
+      lastTickAt: 0,
+    });
+
+    expect(
+      root.querySelector('[data-testid="skill-raw-data-scraping"]')?.textContent?.trim(),
+    ).toBe("Raw data: 42");
+    expect(root.querySelector('[data-testid="skill-raw-data-labelling"]')).toBeNull();
   });
 });

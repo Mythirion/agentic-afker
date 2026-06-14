@@ -31,6 +31,7 @@ pub struct SkillSnapshot {
     pub is_active: bool,
     pub is_locked: bool,
     pub prerequisite: Option<String>,
+    pub raw_data: u64,
 }
 
 #[derive(Clone, Serialize)]
@@ -199,11 +200,13 @@ fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
     let is_locked = is_skill_locked(state, skill_id);
     let is_active = state.active_skill == id;
 
-    let (level, xp) = state
+    let (level, xp, raw_data) = state
         .skills
         .get(&id)
-        .map(|skill| (skill.level, skill.xp))
-        .unwrap_or((1, 0));
+        .map(|skill| (skill.level, skill.xp, skill.resources))
+        .unwrap_or((1, 0, 0));
+
+    let raw_data = if skill_id == "scraping" { raw_data } else { 0 };
 
     let (xp_into_level, xp_to_next_level, level_progress) = progress_within_level(level, xp);
 
@@ -223,6 +226,7 @@ fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
         is_active,
         is_locked,
         prerequisite,
+        raw_data,
     }
 }
 
@@ -345,5 +349,30 @@ mod tests {
         assert!((scraping.level_progress - (5.0 / 83.0)).abs() < f64::EPSILON);
         assert_eq!(snapshot.active_skill, SkillId::scraping().0);
         assert_eq!(snapshot.total_level, 1);
+        assert_eq!(scraping.raw_data, 5);
+    }
+
+    #[test]
+    fn snapshot_reflects_raw_data_consumed_by_labelling() {
+        let mut state = GameState::new_scraping_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 5).expect("level scraping");
+        refresh_skill_unlocks(&mut state);
+        {
+            let scraping = state.skills.get_mut(&SkillId::scraping()).unwrap();
+            scraping.resources = 8;
+        }
+        crate::simulation::set_active_skill(&mut state, "labelling").expect("activate labelling");
+
+        advance(&mut state, 500);
+
+        let snapshot = to_snapshot(&state);
+        let scraping = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "scraping")
+            .expect("scraping skill");
+
+        assert_eq!(scraping.raw_data, 3);
+        assert_eq!(snapshot.tokens, 5);
     }
 }
