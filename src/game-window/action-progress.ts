@@ -31,14 +31,15 @@ export function updateCurrentActionProgress(
 export function startCurrentActionProgressLoop(
   root: HTMLElement,
   getCycleStartedAt: () => number,
+  hasActiveAction: () => boolean,
 ): () => void {
   let frameId = 0;
 
   const tick = () => {
-    updateCurrentActionProgress(
-      root,
-      actionProgress(Date.now() - getCycleStartedAt()),
-    );
+    const progress = hasActiveAction()
+      ? actionProgress(Date.now() - getCycleStartedAt())
+      : 0;
+    updateCurrentActionProgress(root, progress);
     frameId = requestAnimationFrame(tick);
   };
 

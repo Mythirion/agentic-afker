@@ -40,6 +40,35 @@ describe("mountGameWindow", () => {
     );
   });
 
+  it("renders idle current action on a fresh save", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "",
+      skills: [
+        {
+          id: "scraping",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+        },
+      ],
+      tokens: 0,
+      totalLevel: 1,
+      lastTickAt: 0,
+    });
+
+    expect(root.querySelector('[data-testid="current-action-name"]')?.textContent).toBe(
+      "Idle",
+    );
+    expect(root.querySelector(".current-action--idle")).not.toBeNull();
+    expect(root.querySelector('[data-testid="active-skill-indicator"]')).toBeNull();
+  });
+
     it("renders scraping level, xp, active indicator, and progress bar from snapshot", () => {
     const root = document.createElement("div");
     mountGameWindow(root);

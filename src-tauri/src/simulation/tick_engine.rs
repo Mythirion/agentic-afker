@@ -14,6 +14,10 @@ pub fn advance(state: &mut GameState, elapsed_ms: u64) {
 }
 
 fn process_tick(state: &mut GameState) {
+    if !state.has_active_skill() {
+        return;
+    }
+
     if state.active_skill == SkillId::scraping() {
         apply_scraping_tick(state);
     }
@@ -32,6 +36,17 @@ fn apply_scraping_tick(state: &mut GameState) {
 mod tests {
     use super::*;
     use crate::simulation::game_state::GameState;
+
+    #[test]
+    fn advance_does_not_progress_while_idle_on_fresh_start() {
+        let mut state = GameState::new_fresh_start(0);
+
+        advance(&mut state, 5_000);
+
+        assert!(!state.has_active_skill());
+        assert_eq!(state.scraping().xp, 0);
+        assert_eq!(state.scraping().level, 1);
+    }
 
     #[test]
     fn advance_increases_scraping_xp_over_elapsed_time() {

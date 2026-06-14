@@ -34,6 +34,18 @@ function formatSkillLabel(skillId: string): string {
   return SKILL_LABELS[skillId] ?? skillId;
 }
 
+export function formatActiveSkillLabel(activeSkill: string): string {
+  if (!activeSkill) {
+    return "Idle";
+  }
+
+  return formatSkillLabel(activeSkill);
+}
+
+export function hasActiveSkill(activeSkill: string): boolean {
+  return activeSkill.length > 0;
+}
+
 function renderCurrentActionSection(activeSkillLabel: string): string {
   return `
     <section class="current-action" aria-label="Current action" data-testid="current-action">
@@ -138,16 +150,19 @@ export function renderGameWindowState(
   const skillList = root.querySelector('[data-testid="skill-list"]');
   const actionName = root.querySelector('[data-testid="current-action-name"]');
   const actionBar = root.querySelector('[data-testid="current-action-progress"]');
+  const currentAction = root.querySelector('[data-testid="current-action"]');
 
-  if (!tokenBalance || !totalLevel || !skillList || !actionName || !actionBar) {
+  if (!tokenBalance || !totalLevel || !skillList || !actionName || !actionBar || !currentAction) {
     throw new Error("Game Window layout is missing expected elements");
   }
 
   tokenBalance.textContent = String(snapshot.tokens);
   totalLevel.textContent = String(snapshot.totalLevel);
-  const activeSkillLabel = formatSkillLabel(snapshot.activeSkill);
+  const activeSkillLabel = formatActiveSkillLabel(snapshot.activeSkill);
+  const idle = !hasActiveSkill(snapshot.activeSkill);
   actionName.textContent = activeSkillLabel;
   actionBar.setAttribute("aria-label", `${activeSkillLabel} action progress`);
+  currentAction.classList.toggle("current-action--idle", idle);
   skillList.innerHTML = snapshot.skills.map(renderSkillRow).join("");
 }
 

@@ -8,6 +8,14 @@ impl SkillId {
     pub fn scraping() -> Self {
         Self("scraping".to_string())
     }
+
+    pub fn idle() -> Self {
+        Self(String::new())
+    }
+
+    pub fn is_idle(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,18 +46,28 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn new_scraping_start(last_tick_at: i64) -> Self {
+    pub fn new_fresh_start(last_tick_at: i64) -> Self {
         let mut skills = HashMap::new();
         skills.insert(SkillId::scraping(), SkillState::new());
 
         Self {
             skills,
-            active_skill: SkillId::scraping(),
+            active_skill: SkillId::idle(),
             tokens: 0,
             form_stage: 1,
             last_tick_at,
             offline_cap_hours: 8,
         }
+    }
+
+    pub fn new_scraping_start(last_tick_at: i64) -> Self {
+        let mut state = Self::new_fresh_start(last_tick_at);
+        state.active_skill = SkillId::scraping();
+        state
+    }
+
+    pub fn has_active_skill(&self) -> bool {
+        !self.active_skill.is_idle()
     }
 
     pub fn scraping(&self) -> &SkillState {

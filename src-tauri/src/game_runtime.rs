@@ -50,7 +50,7 @@ impl GameRuntime {
         let state = repo
             .load()
             .map_err(|err| err.to_string())?
-            .unwrap_or_else(|| GameState::new_scraping_start(now));
+            .unwrap_or_else(|| GameState::new_fresh_start(now));
 
         Ok(Self {
             state: Mutex::new(state),
@@ -186,6 +186,16 @@ pub fn get_game_state(runtime: State<'_, GameRuntime>) -> GameStateSnapshot {
 mod tests {
     use super::*;
     use crate::simulation::{advance, GameState, SkillId};
+
+    #[test]
+    fn fresh_start_snapshot_has_no_active_skill() {
+        let state = GameState::new_fresh_start(0);
+        let snapshot = to_snapshot(&state);
+
+        assert_eq!(snapshot.active_skill, "");
+        assert!(snapshot.skills.iter().all(|skill| !skill.is_active));
+        assert_eq!(snapshot.total_level, 1);
+    }
 
     #[test]
     fn snapshot_marks_active_scraping_skill() {

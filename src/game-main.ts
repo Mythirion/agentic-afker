@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { startCurrentActionProgressLoop } from "./game-window/action-progress";
 import { mountDevMenu, renderDevMenu } from "./game-window/dev-menu";
 import {
+  hasActiveSkill,
   mountGameWindow,
   renderGameWindowState,
   type GameWindowSnapshot,
@@ -14,8 +15,10 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
   const devMenuEnabled = await invoke<boolean>("is_dev_menu_enabled");
   const devMenuRoot = devMenuEnabled ? mountDevMenu(root) : null;
   let actionCycleStartedAt = Date.now();
+  let activeSkill = "";
 
   const applySnapshot = (snapshot: GameWindowSnapshot) => {
+    activeSkill = snapshot.activeSkill;
     actionCycleStartedAt = Date.now();
     renderGameWindowState(root, snapshot);
 
@@ -27,7 +30,11 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
   };
 
   applySnapshot(await invoke<GameWindowSnapshot>("get_game_state"));
-  startCurrentActionProgressLoop(root, () => actionCycleStartedAt);
+  startCurrentActionProgressLoop(
+    root,
+    () => actionCycleStartedAt,
+    () => hasActiveSkill(activeSkill),
+  );
 
   await listen<GameWindowSnapshot>("game-state", (event) => {
     applySnapshot(event.payload);
