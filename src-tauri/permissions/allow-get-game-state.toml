@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-get-game-state"
+description = "Allows the Game Window to read the current simulation snapshot."
+commands.allow = ["get_game_state"]

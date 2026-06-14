@@ -9,6 +9,7 @@
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
-    "allow-open-game-window"
+    "allow-open-game-window",
+    "allow-get-game-state"
   ]
 }
