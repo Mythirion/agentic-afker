@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-open-game-window"
+description = "Allows the overlay to open the Game Window."
+commands.allow = ["open_game_window"]
