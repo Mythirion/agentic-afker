@@ -1,5 +1,6 @@
+use crate::dev_menu::{apply_skill_level, dev_menu_enabled, DevMenuError};
 use crate::persistence::SaveRepository;
-use crate::simulation::{advance, GameState};
+use crate::simulation::{advance, GameState, progress_within_level};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -16,6 +17,9 @@ pub struct SkillSnapshot {
     pub id: String,
     pub level: u32,
     pub xp: u64,
+    pub xp_into_level: u64,
+    pub xp_to_next_level: u64,
+    pub level_progress: f64,
     pub is_active: bool,
 }
 
@@ -88,17 +92,45 @@ impl GameRuntime {
         app.emit(GAME_STATE_EVENT, self.snapshot())
             .map_err(|err| err.to_string())
     }
+
+    pub fn dev_set_skill_level(
+        &self,
+        app: &AppHandle,
+        skill_id: &str,
+        level: u32,
+    ) -> Result<(), String> {
+        if !dev_menu_enabled() {
+            return Err(DevMenuError::DevMenuDisabled.to_string());
+        }
+
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_skill_level(&mut state, skill_id, level).map_err(|err| err.to_string())?;
+        }
+
+        self.persist()?;
+        *self.ticks_since_save.lock().expect("save ticks lock") = 0;
+        self.emit_snapshot(app)
+    }
 }
 
 pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
     let mut skills: Vec<SkillSnapshot> = state
         .skills
         .iter()
-        .map(|(id, skill)| SkillSnapshot {
-            id: id.0.clone(),
-            level: skill.level,
-            xp: skill.xp,
-            is_active: *id == state.active_skill,
+        .map(|(id, skill)| {
+            let (xp_into_level, xp_to_next_level, level_progress) =
+                progress_within_level(skill.level, skill.xp);
+
+            SkillSnapshot {
+                id: id.0.clone(),
+                level: skill.level,
+                xp: skill.xp,
+                xp_into_level,
+                xp_to_next_level,
+                level_progress,
+                is_active: *id == state.active_skill,
+            }
         })
         .collect();
     skills.sort_by(|left, right| left.id.cmp(&right.id));
@@ -169,6 +201,9 @@ mod tests {
 
         assert!(scraping.is_active);
         assert_eq!(scraping.xp, 5);
+        assert_eq!(scraping.xp_into_level, 5);
+        assert_eq!(scraping.xp_to_next_level, 83);
+        assert!((scraping.level_progress - (5.0 / 83.0)).abs() < f64::EPSILON);
         assert_eq!(snapshot.active_skill, SkillId::scraping().0);
         assert_eq!(snapshot.total_level, 1);
     }

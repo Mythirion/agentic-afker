@@ -99,14 +99,19 @@ body,
 }
 
 .skill-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 12px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: #1b1b26;
+}
+
+.skill-row__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .skill-row--active {
@@ -119,6 +124,7 @@ body,
 }
 
 .skill-row__name {
+  flex: 1;
   font-weight: 600;
 }
 
@@ -128,10 +134,102 @@ body,
   color: rgba(255, 255, 255, 0.8);
 }
 
+.skill-row__progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skill-row__progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.skill-row__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5b8def, #8ec5ff);
+  transition: width 0.4s ease;
+}
+
+.skill-row--active .skill-row__progress-fill {
+  background: linear-gradient(90deg, #4f7fe0, #a8d4ff);
+}
+
 .skill-row__badge {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8ec5ff;
+}
+
+.dev-menu {
+  margin-top: auto;
+  padding: 16px 20px 20px;
+  border-top: 1px solid rgba(255, 180, 80, 0.25);
+  background: rgba(40, 28, 12, 0.35);
+}
+
+.dev-menu__summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffb86b;
+}
+
+.dev-menu__hint {
+  margin: 8px 0 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dev-menu__hint code {
+  color: #ffd8a8;
+}
+
+.dev-menu__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-menu__row {
+  display: grid;
+  grid-template-columns: 1fr 88px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dev-menu__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dev-menu__input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: #14141c;
+  color: #f5f5f5;
+}
+
+.dev-menu__apply {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 184, 107, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 184, 107, 0.12);
+  color: #ffd8a8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dev-menu__apply:hover {
+  background: rgba(255, 184, 107, 0.2);
 }

@@ -4,4 +4,4 @@ mod xp_curve;
 
 pub use game_state::{GameState, SkillId, SkillState};
 pub use tick_engine::advance;
-pub use xp_curve::xp_for_level;
+pub use xp_curve::{progress_within_level, xp_for_level};

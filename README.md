@@ -12,6 +12,16 @@ npm test
 npm run tauri dev
 ```
 
+### Dev menu (playtesting)
+
+Set `AGENTIC_AFKER_DEV=1` to show a **Dev** panel in the Game Window for setting Skill levels (XP snaps to the RuneScape curve). Hidden in normal runs.
+
+```bash
+AGENTIC_AFKER_DEV=1 npm run tauri dev
+```
+
+**Windows portable builds** include `run-dev.bat` beside `agentic-afker.exe` — double-click it to launch with the dev menu enabled (or use `set AGENTIC_AFKER_DEV=1` in cmd before running the exe).
+
 ### Windows playtest (no npm required)
 
 You do **not** need Node/npm on Windows to test builds. CI produces a portable folder (no installer wizard):
@@ -19,7 +29,7 @@ You do **not** need Node/npm on Windows to test builds. CI produces a portable f
 1. Run **Actions → Staging build** on the branch you want (defaults to `staging`).
 2. Open the completed workflow run on GitHub → **Artifacts** → download the artifact (GitHub always wraps it in **one** `.zip`).
 3. Unzip once — you should see `agentic-afker-portable/agentic-afker.exe` (plus DLLs/resources). **Not** a zip inside a zip.
-4. Run `agentic-afker.exe` (requires [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — preinstalled on Windows 10/11).
+4. Run `agentic-afker.exe`, or `run-dev.bat` to enable the dev menu for playtesting (requires [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — preinstalled on Windows 10/11).
 
 If you get a zip containing another zip with the same name, the workflow was an older revision that pre-compressed before upload. Re-run **Staging build** on current `staging` (or any branch with the directory-upload fix).
 

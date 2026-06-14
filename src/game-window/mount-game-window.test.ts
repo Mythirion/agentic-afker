@@ -13,6 +13,9 @@ const scrapingSnapshot: GameWindowSnapshot = {
       id: "scraping",
       level: 2,
       xp: 150,
+      xpIntoLevel: 50,
+      xpToNextLevel: 300,
+      levelProgress: 50 / 300,
       isActive: true,
     },
   ],
@@ -37,19 +40,42 @@ describe("mountGameWindow", () => {
     );
   });
 
-  it("renders scraping level, xp, and active-skill indicator from snapshot", () => {
+    it("renders scraping level, xp, active indicator, and progress bar from snapshot", () => {
     const root = document.createElement("div");
     mountGameWindow(root);
 
-    renderGameWindowState(root, scrapingSnapshot);
+    const snapshot: GameWindowSnapshot = {
+      ...scrapingSnapshot,
+      skills: [
+        {
+          id: "scraping",
+          level: 2,
+          xp: 175,
+          xpIntoLevel: 92,
+          xpToNextLevel: 92,
+          levelProgress: 0.5,
+          isActive: true,
+        },
+      ],
+    };
+
+    renderGameWindowState(root, snapshot);
 
     expect(root.querySelector('[data-testid="skill-level-scraping"]')?.textContent).toBe(
       "Lv 2",
     );
-    expect(root.querySelector('[data-testid="skill-xp-scraping"]')?.textContent).toBe(
-      "150 XP",
+    expect(root.querySelector('[data-testid="skill-xp-scraping"]')?.textContent?.trim()).toBe(
+      "92 / 92 XP",
     );
     expect(root.querySelector('[data-testid="active-skill-indicator"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="total-level"]')?.textContent).toBe("2");
+
+    const progressBar = root.querySelector('[data-testid="skill-progress-scraping"]');
+    expect(progressBar?.getAttribute("aria-valuenow")).toBe("50");
+
+    const progressFill = root.querySelector(
+      '[data-testid="skill-progress-fill-scraping"]',
+    ) as HTMLElement | null;
+    expect(progressFill?.style.width).toBe("50%");
   });
 });

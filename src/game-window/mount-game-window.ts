@@ -7,6 +7,9 @@ export interface SkillSnapshot {
   id: string;
   level: number;
   xp: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
+  levelProgress: number;
   isActive: boolean;
 }
 
@@ -31,20 +34,47 @@ function formatSkillLabel(skillId: string): string {
   return SKILL_LABELS[skillId] ?? skillId;
 }
 
+function formatProgressPercent(progress: number): string {
+  return `${Math.round(progress * 100)}`;
+}
+
 function renderSkillRow(skill: SkillSnapshot): string {
   const activeClass = skill.isActive ? " skill-row--active" : "";
   const activeAttr = skill.isActive ? ' data-active="true"' : "";
+  const progressPercent = formatProgressPercent(skill.levelProgress);
+  const progressWidth = `${Math.round(skill.levelProgress * 100)}%`;
 
   return `
     <li class="skill-row${activeClass}" data-testid="skill-${skill.id}"${activeAttr}>
-      <span class="skill-row__name">${formatSkillLabel(skill.id)}</span>
-      <span class="skill-row__level" data-testid="skill-level-${skill.id}">Lv ${skill.level}</span>
-      <span class="skill-row__xp" data-testid="skill-xp-${skill.id}">${skill.xp} XP</span>
-      ${
-        skill.isActive
-          ? '<span class="skill-row__badge" data-testid="active-skill-indicator">Active</span>'
-          : ""
-      }
+      <div class="skill-row__header">
+        <span class="skill-row__name">${formatSkillLabel(skill.id)}</span>
+        <span class="skill-row__level" data-testid="skill-level-${skill.id}">Lv ${skill.level}</span>
+        ${
+          skill.isActive
+            ? '<span class="skill-row__badge" data-testid="active-skill-indicator">Active</span>'
+            : ""
+        }
+      </div>
+      <div class="skill-row__progress-wrap">
+        <div
+          class="skill-row__progress"
+          role="progressbar"
+          aria-valuenow="${progressPercent}"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label="${formatSkillLabel(skill.id)} level progress"
+          data-testid="skill-progress-${skill.id}"
+        >
+          <div
+            class="skill-row__progress-fill"
+            style="width: ${progressWidth}"
+            data-testid="skill-progress-fill-${skill.id}"
+          ></div>
+        </div>
+        <span class="skill-row__xp" data-testid="skill-xp-${skill.id}">
+          ${skill.xpIntoLevel} / ${skill.xpToNextLevel} XP
+        </span>
+      </div>
     </li>
   `;
 }
