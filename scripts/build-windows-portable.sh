@@ -64,4 +64,7 @@ echo "Done. Portable bundle:"
 find "$OUT_DIR" -maxdepth 2 -type f | sort | sed "s|^|  |"
 echo
 echo "Copy to a Windows host, e.g.:"
-echo "  scp -r \"$OUT_DIR\" you@windows-pc:~/Desktop/"
+echo "  scp -r \"$OUT_DIR\" you@192.168.0.1:~/projects/agentic-afker/"
+echo "Attempting to copy to Windows host..."
+
+scp -r "$OUT_DIR" aaron@192.168.0.201:~/projects/agentic-afker/
