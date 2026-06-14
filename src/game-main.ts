@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { startCurrentActionProgressLoop } from "./game-window/action-progress";
 import { mountDevMenu, renderDevMenu } from "./game-window/dev-menu";
 import {
   mountGameWindow,
@@ -12,8 +13,10 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
 
   const devMenuEnabled = await invoke<boolean>("is_dev_menu_enabled");
   const devMenuRoot = devMenuEnabled ? mountDevMenu(root) : null;
+  let actionCycleStartedAt = Date.now();
 
   const applySnapshot = (snapshot: GameWindowSnapshot) => {
+    actionCycleStartedAt = Date.now();
     renderGameWindowState(root, snapshot);
 
     if (devMenuRoot) {
@@ -24,6 +27,7 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
   };
 
   applySnapshot(await invoke<GameWindowSnapshot>("get_game_state"));
+  startCurrentActionProgressLoop(root, () => actionCycleStartedAt);
 
   await listen<GameWindowSnapshot>("game-state", (event) => {
     applySnapshot(event.payload);

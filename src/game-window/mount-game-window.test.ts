@@ -61,6 +61,11 @@ describe("mountGameWindow", () => {
 
     renderGameWindowState(root, snapshot);
 
+    expect(root.querySelector('[data-testid="current-action-name"]')?.textContent).toBe(
+      "Scraping",
+    );
+    expect(root.querySelector('[data-testid="current-action-progress"]')).not.toBeNull();
+
     expect(root.querySelector('[data-testid="skill-level-scraping"]')?.textContent).toBe(
       "Lv 2",
     );

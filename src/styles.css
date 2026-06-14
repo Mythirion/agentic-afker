@@ -71,6 +71,48 @@ body,
   font-weight: 600;
 }
 
+.current-action {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #171720;
+}
+
+.current-action__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.current-action__label {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.current-action__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9be7b5;
+}
+
+.current-action__progress {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.current-action__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3ecf8e, #9be7b5);
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.35);
+  transition: width 80ms linear;
+}
+
 .game-main {
   flex: 1;
   padding: 20px;

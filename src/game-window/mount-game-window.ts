@@ -34,6 +34,32 @@ function formatSkillLabel(skillId: string): string {
   return SKILL_LABELS[skillId] ?? skillId;
 }
 
+function renderCurrentActionSection(activeSkillLabel: string): string {
+  return `
+    <section class="current-action" aria-label="Current action" data-testid="current-action">
+      <div class="current-action__header">
+        <span class="current-action__label">Current action</span>
+        <span class="current-action__name" data-testid="current-action-name">${activeSkillLabel}</span>
+      </div>
+      <div
+        class="current-action__progress"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+        aria-label="${activeSkillLabel} action progress"
+        data-testid="current-action-progress"
+      >
+        <div
+          class="current-action__progress-fill"
+          style="width: 0%"
+          data-testid="current-action-fill"
+        ></div>
+      </div>
+    </section>
+  `;
+}
+
 function formatProgressPercent(progress: number): string {
   return `${Math.round(progress * 100)}`;
 }
@@ -91,6 +117,7 @@ export function renderGameWindowStub(root: HTMLElement): void {
         <span class="game-header__value" data-testid="total-level">—</span>
       </div>
     </header>
+    ${renderCurrentActionSection("—")}
     <main class="game-main">
       <section class="skill-list" aria-label="Skills">
         <h2 class="skill-list__title">Data Pipeline</h2>
@@ -109,13 +136,18 @@ export function renderGameWindowState(
   const tokenBalance = root.querySelector('[data-testid="token-balance"]');
   const totalLevel = root.querySelector('[data-testid="total-level"]');
   const skillList = root.querySelector('[data-testid="skill-list"]');
+  const actionName = root.querySelector('[data-testid="current-action-name"]');
+  const actionBar = root.querySelector('[data-testid="current-action-progress"]');
 
-  if (!tokenBalance || !totalLevel || !skillList) {
+  if (!tokenBalance || !totalLevel || !skillList || !actionName || !actionBar) {
     throw new Error("Game Window layout is missing expected elements");
   }
 
   tokenBalance.textContent = String(snapshot.tokens);
   totalLevel.textContent = String(snapshot.totalLevel);
+  const activeSkillLabel = formatSkillLabel(snapshot.activeSkill);
+  actionName.textContent = activeSkillLabel;
+  actionBar.setAttribute("aria-label", `${activeSkillLabel} action progress`);
   skillList.innerHTML = snapshot.skills.map(renderSkillRow).join("");
 }
 
