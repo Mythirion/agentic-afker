@@ -29,6 +29,18 @@ fn dev_menu_enabled_for(value: Option<String>) -> bool {
     matches!(value.as_deref(), Some("1"))
 }
 
+pub fn apply_set_tokens(state: &mut GameState, amount: u64) {
+    state.tokens = amount;
+}
+
+pub fn apply_add_tokens(state: &mut GameState, amount: u64) {
+    state.tokens = state.tokens.saturating_add(amount);
+}
+
+pub fn apply_reset_save(state: &mut GameState, now_ms: i64) {
+    *state = GameState::new_fresh_start(now_ms);
+}
+
 pub fn apply_skill_level(
     state: &mut GameState,
     skill_id: &str,
@@ -63,6 +75,32 @@ pub fn dev_set_skill_level(
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     runtime.dev_set_skill_level(&app, &skill_id, level)
+}
+
+#[tauri::command]
+pub fn dev_set_tokens(
+    amount: u64,
+    runtime: tauri::State<crate::game_runtime::GameRuntime>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    runtime.dev_set_tokens(&app, amount)
+}
+
+#[tauri::command]
+pub fn dev_add_tokens(
+    amount: u64,
+    runtime: tauri::State<crate::game_runtime::GameRuntime>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    runtime.dev_add_tokens(&app, amount)
+}
+
+#[tauri::command]
+pub fn dev_reset_save(
+    runtime: tauri::State<crate::game_runtime::GameRuntime>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    runtime.dev_reset_save(&app)
 }
 
 #[cfg(test)]
@@ -107,5 +145,43 @@ mod tests {
 
         let error = apply_skill_level(&mut state, "scraping", 0).expect_err("invalid level");
         assert_eq!(error, DevMenuError::InvalidLevel);
+    }
+
+    #[test]
+    fn apply_set_tokens_sets_exact_balance() {
+        let mut state = GameState::new_scraping_start(0);
+        state.tokens = 42;
+
+        apply_set_tokens(&mut state, 250);
+
+        assert_eq!(state.tokens, 250);
+    }
+
+    #[test]
+    fn apply_add_tokens_increments_balance() {
+        let mut state = GameState::new_scraping_start(0);
+        state.tokens = 100;
+
+        apply_add_tokens(&mut state, 35);
+
+        assert_eq!(state.tokens, 135);
+    }
+
+    #[test]
+    fn apply_reset_save_restores_fresh_alpha_start() {
+        let mut state = GameState::new_scraping_start(0);
+        apply_skill_level(&mut state, "scraping", 12).expect("set level");
+        state.tokens = 999;
+        state.form_stage = 2;
+        state.active_skill = crate::simulation::SkillId::scraping();
+
+        apply_reset_save(&mut state, 5_000);
+
+        assert_eq!(state.scraping().level, 1);
+        assert_eq!(state.scraping().xp, 0);
+        assert_eq!(state.tokens, 0);
+        assert_eq!(state.form_stage, 1);
+        assert!(!state.has_active_skill());
+        assert_eq!(state.last_tick_at, 5_000);
     }
 }

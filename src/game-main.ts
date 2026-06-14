@@ -27,8 +27,19 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
     });
 
     if (devMenuRoot) {
-      renderDevMenu(devMenuRoot, snapshot.skills, async (skillId, level) => {
-        await invoke("dev_set_skill_level", { skillId, level });
+      renderDevMenu(devMenuRoot, snapshot.skills, snapshot.tokens, {
+        onSetLevel: async (skillId, level) => {
+          await invoke("dev_set_skill_level", { skillId, level });
+        },
+        onSetTokens: async (amount) => {
+          await invoke("dev_set_tokens", { amount });
+        },
+        onAddTokens: async (amount) => {
+          await invoke("dev_add_tokens", { amount });
+        },
+        onResetSave: async () => {
+          await invoke("dev_reset_save");
+        },
       });
     }
   };

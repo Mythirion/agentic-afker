@@ -14,7 +14,9 @@ mod window_manager;
 
 use app_shell_state::AppShellState;
 use commands::open_game_window;
-use dev_menu::{dev_set_skill_level, is_dev_menu_enabled};
+use dev_menu::{
+    dev_add_tokens, dev_reset_save, dev_set_skill_level, dev_set_tokens, is_dev_menu_enabled,
+};
 use game_runtime::{get_game_state, save_on_exit, set_active_skill, start_tick_loop, GameRuntime};
 #[cfg(desktop)]
 use hotkey_registry::register_interact_mode_hotkey;
@@ -44,7 +46,10 @@ pub fn run() {
             get_game_state,
             set_active_skill,
             is_dev_menu_enabled,
-            dev_set_skill_level
+            dev_set_skill_level,
+            dev_set_tokens,
+            dev_add_tokens,
+            dev_reset_save
         ])
         .on_window_event(|window, event| {
             handle_window_event(window, event);

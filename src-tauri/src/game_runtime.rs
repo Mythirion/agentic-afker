@@ -1,4 +1,7 @@
-use crate::dev_menu::{apply_skill_level, dev_menu_enabled, DevMenuError};
+use crate::dev_menu::{
+    apply_add_tokens, apply_reset_save, apply_set_tokens, apply_skill_level, dev_menu_enabled,
+    DevMenuError,
+};
 use crate::persistence::SaveRepository;
 use crate::simulation::{
     advance,
@@ -113,6 +116,49 @@ impl GameRuntime {
             apply_skill_level(&mut state, skill_id, level).map_err(|err| err.to_string())?;
         }
 
+        self.persist_and_emit(app)
+    }
+
+    pub fn dev_set_tokens(&self, app: &AppHandle, amount: u64) -> Result<(), String> {
+        if !dev_menu_enabled() {
+            return Err(DevMenuError::DevMenuDisabled.to_string());
+        }
+
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_set_tokens(&mut state, amount);
+        }
+
+        self.persist_and_emit(app)
+    }
+
+    pub fn dev_add_tokens(&self, app: &AppHandle, amount: u64) -> Result<(), String> {
+        if !dev_menu_enabled() {
+            return Err(DevMenuError::DevMenuDisabled.to_string());
+        }
+
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_add_tokens(&mut state, amount);
+        }
+
+        self.persist_and_emit(app)
+    }
+
+    pub fn dev_reset_save(&self, app: &AppHandle) -> Result<(), String> {
+        if !dev_menu_enabled() {
+            return Err(DevMenuError::DevMenuDisabled.to_string());
+        }
+
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_reset_save(&mut state, now_ms());
+        }
+
+        self.persist_and_emit(app)
+    }
+
+    fn persist_and_emit(&self, app: &AppHandle) -> Result<(), String> {
         self.persist()?;
         *self.ticks_since_save.lock().expect("save ticks lock") = 0;
         self.emit_snapshot(app)

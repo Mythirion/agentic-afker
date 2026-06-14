@@ -4,6 +4,13 @@ const SKILL_LABELS: Record<string, string> = {
   scraping: "Scraping",
 };
 
+export interface DevMenuCallbacks {
+  onSetLevel: (skillId: string, level: number) => Promise<void>;
+  onSetTokens: (amount: number) => Promise<void>;
+  onAddTokens: (amount: number) => Promise<void>;
+  onResetSave: () => Promise<void>;
+}
+
 function formatSkillLabel(skillId: string): string {
   return SKILL_LABELS[skillId] ?? skillId;
 }
@@ -34,13 +41,73 @@ function renderSkillLevelControl(skill: SkillSnapshot): string {
   `;
 }
 
-export function renderDevMenuPanel(skills: SkillSnapshot[]): string {
+function renderTokenControls(tokens: number): string {
+  return `
+    <div class="dev-menu__section" data-testid="dev-token-controls">
+      <h3 class="dev-menu__section-title">Tokens</h3>
+      <div class="dev-menu__row" data-testid="dev-set-tokens-row">
+        <label class="dev-menu__label" for="dev-set-tokens-input">Set balance</label>
+        <input
+          id="dev-set-tokens-input"
+          class="dev-menu__input"
+          type="number"
+          min="0"
+          value="${tokens}"
+          data-testid="dev-set-tokens-input"
+        />
+        <button
+          type="button"
+          class="dev-menu__apply"
+          data-testid="dev-set-tokens-apply"
+        >
+          Set Tokens
+        </button>
+      </div>
+      <div class="dev-menu__row" data-testid="dev-add-tokens-row">
+        <label class="dev-menu__label" for="dev-add-tokens-input">Add amount</label>
+        <input
+          id="dev-add-tokens-input"
+          class="dev-menu__input"
+          type="number"
+          min="0"
+          value="100"
+          data-testid="dev-add-tokens-input"
+        />
+        <button
+          type="button"
+          class="dev-menu__apply"
+          data-testid="dev-add-tokens-apply"
+        >
+          Add Tokens
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderResetSaveControl(): string {
+  return `
+    <div class="dev-menu__section" data-testid="dev-reset-controls">
+      <button
+        type="button"
+        class="dev-menu__danger"
+        data-testid="dev-reset-save"
+      >
+        Reset Save
+      </button>
+    </div>
+  `;
+}
+
+export function renderDevMenuPanel(skills: SkillSnapshot[], tokens: number): string {
   return `
     <details class="dev-menu__details" open>
       <summary class="dev-menu__summary">Dev</summary>
       <p class="dev-menu__hint">Requires <code>AGENTIC_AFKER_DEV=1</code></p>
       <div class="dev-menu__controls">
         ${skills.map(renderSkillLevelControl).join("")}
+        ${renderTokenControls(tokens)}
+        ${renderResetSaveControl()}
       </div>
     </details>
   `;
@@ -56,9 +123,18 @@ export function mountDevMenuShell(root: HTMLElement): HTMLElement {
 
 export const mountDevMenu = mountDevMenuShell;
 
+function parseNonNegativeInt(value: string): number | null {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
 export function bindDevMenuControls(
   container: HTMLElement,
-  onSetLevel: (skillId: string, level: number) => Promise<void>,
+  callbacks: DevMenuCallbacks,
 ): void {
   container.querySelectorAll<HTMLButtonElement>(".dev-menu__apply").forEach((button) => {
     button.addEventListener("click", () => {
@@ -79,9 +155,64 @@ export function bindDevMenuControls(
         return;
       }
 
-      void onSetLevel(skillId, level).catch((error: unknown) => {
+      void callbacks.onSetLevel(skillId, level).catch((error: unknown) => {
         console.error("failed to set skill level", error);
       });
+    });
+  });
+
+  const setTokensInput = container.querySelector<HTMLInputElement>(
+    '[data-testid="dev-set-tokens-input"]',
+  );
+  const setTokensButton = container.querySelector<HTMLButtonElement>(
+    '[data-testid="dev-set-tokens-apply"]',
+  );
+  setTokensButton?.addEventListener("click", () => {
+    if (!setTokensInput) {
+      return;
+    }
+
+    const amount = parseNonNegativeInt(setTokensInput.value);
+    if (amount === null) {
+      return;
+    }
+
+    void callbacks.onSetTokens(amount).catch((error: unknown) => {
+      console.error("failed to set tokens", error);
+    });
+  });
+
+  const addTokensInput = container.querySelector<HTMLInputElement>(
+    '[data-testid="dev-add-tokens-input"]',
+  );
+  const addTokensButton = container.querySelector<HTMLButtonElement>(
+    '[data-testid="dev-add-tokens-apply"]',
+  );
+  addTokensButton?.addEventListener("click", () => {
+    if (!addTokensInput) {
+      return;
+    }
+
+    const amount = parseNonNegativeInt(addTokensInput.value);
+    if (amount === null) {
+      return;
+    }
+
+    void callbacks.onAddTokens(amount).catch((error: unknown) => {
+      console.error("failed to add tokens", error);
+    });
+  });
+
+  const resetButton = container.querySelector<HTMLButtonElement>(
+    '[data-testid="dev-reset-save"]',
+  );
+  resetButton?.addEventListener("click", () => {
+    if (!window.confirm("Reset save to a fresh Alpha start? This cannot be undone.")) {
+      return;
+    }
+
+    void callbacks.onResetSave().catch((error: unknown) => {
+      console.error("failed to reset save", error);
     });
   });
 }
@@ -89,8 +220,9 @@ export function bindDevMenuControls(
 export function renderDevMenu(
   container: HTMLElement,
   skills: SkillSnapshot[],
-  onSetLevel: (skillId: string, level: number) => Promise<void>,
+  tokens: number,
+  callbacks: DevMenuCallbacks,
 ): void {
-  container.innerHTML = renderDevMenuPanel(skills);
-  bindDevMenuControls(container, onSetLevel);
+  container.innerHTML = renderDevMenuPanel(skills, tokens);
+  bindDevMenuControls(container, callbacks);
 }
