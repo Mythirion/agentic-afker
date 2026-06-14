@@ -22,6 +22,16 @@
         "alwaysOnTop": true,
         "resizable": false,
         "skipTaskbar": false
+      },
+      {
+        "label": "game",
+        "title": "Agentic Afker",
+        "url": "game.html",
+        "width": 960,
+        "height": 640,
+        "visible": false,
+        "decorations": true,
+        "resizable": true
       }
     ],
     "security": {

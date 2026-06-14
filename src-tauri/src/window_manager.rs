@@ -3,8 +3,8 @@
 use crate::interact_mode::{
     overlay_ignore_cursor_events, toggle_interact_mode, InteractMode, InteractModeState,
 };
-use crate::window_config::overlay_window_spec;
-use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
+use crate::window_config::{game_window_spec, open_game_window_effects, overlay_window_spec};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow, Window, WindowEvent};
 
 pub const INTERACT_MODE_CHANGED_EVENT: &str = "interact-mode-changed";
 
@@ -29,6 +29,42 @@ pub fn apply_overlay_interact_mode(
     );
 
     Ok(())
+}
+
+pub fn open_game_window(app: &AppHandle) -> tauri::Result<()> {
+    let effects = open_game_window_effects();
+    let spec = game_window_spec();
+
+    let window = app
+        .get_webview_window(spec.label)
+        .ok_or_else(|| tauri::Error::Anyhow(anyhow::anyhow!("game window is not configured")))?;
+
+    if effects.show_game_window {
+        window.show()?;
+    }
+
+    if effects.focus_game_window {
+        window.set_focus()?;
+    }
+
+    if effects.hide_overlay {
+        if let Some(overlay) = overlay_window(app) {
+            overlay.hide()?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn handle_game_window_event(window: &Window, event: &WindowEvent) {
+    if window.label() != game_window_spec().label {
+        return;
+    }
+
+    if let WindowEvent::CloseRequested { api, .. } = event {
+        api.prevent_close();
+        let _ = window.hide();
+    }
 }
 
 pub fn toggle_interact_mode_for_app(app: &AppHandle) {

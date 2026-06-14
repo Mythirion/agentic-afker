@@ -2,6 +2,7 @@
 
 use crate::app_shell_state::{apply_shell_action, AppShellState, ShellAction};
 use crate::window_config::overlay_window_spec;
+use crate::window_manager::open_game_window;
 use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
@@ -32,8 +33,18 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show-overlay", "Show Overlay", true, None::<&str>)?;
     let minimize_item =
         MenuItem::with_id(app, "minimize-to-tray", "Minimise to Tray", true, None::<&str>)?;
+    let open_game_item =
+        MenuItem::with_id(app, "open-game-window", "Open Game Window", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_item, &minimize_item, &quit_item])?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &show_item,
+            &minimize_item,
+            &open_game_item,
+            &quit_item,
+        ],
+    )?;
 
     let icon = app
         .default_window_icon()
@@ -48,6 +59,11 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show-overlay" => restore_overlay_from_tray(app),
             "minimize-to-tray" => minimize_overlay_to_tray(app),
+            "open-game-window" => {
+                if let Err(err) = open_game_window(app) {
+                    eprintln!("failed to open game window: {err}");
+                }
+            }
             "quit" => {
                 app.exit(0);
             }
@@ -127,5 +143,12 @@ mod tests {
     fn shell_state_starts_overlay_visible() {
         let shell = ShellState::new(AppShellState::OverlayVisible);
         assert_eq!(*shell.0.lock().unwrap(), AppShellState::OverlayVisible);
+    }
+
+    #[test]
+    fn tray_menu_includes_open_game_window_entry() {
+        let source = include_str!("tray_controller.rs");
+        assert!(source.contains("\"open-game-window\""));
+        assert!(source.contains("Open Game Window"));
     }
 }
