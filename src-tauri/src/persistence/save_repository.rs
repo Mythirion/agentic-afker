@@ -171,7 +171,7 @@ impl SaveRepository {
 mod tests {
     use super::*;
     use crate::simulation::{advance, GameState, xp_for_level};
-    use crate::dev_menu::apply_skill_level;
+    use crate::dev_menu::{apply_add_tokens, apply_reset_save, apply_set_tokens, apply_skill_level};
 
     #[test]
     fn round_trip_persists_scraping_progress_and_last_tick_at() {
@@ -218,5 +218,36 @@ mod tests {
 
         assert_eq!(loaded.scraping().level, 15);
         assert_eq!(loaded.scraping().xp, xp_for_level(15));
+    }
+
+    #[test]
+    fn round_trip_persists_dev_token_mutations() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+        let mut state = GameState::new_scraping_start(0);
+        apply_set_tokens(&mut state, 500);
+        apply_add_tokens(&mut state, 75);
+
+        repo.save(&state).expect("save");
+        let loaded = repo.load().expect("load").expect("saved state");
+
+        assert_eq!(loaded.tokens, 575);
+    }
+
+    #[test]
+    fn round_trip_persists_dev_reset_save() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+        let mut state = GameState::new_scraping_start(0);
+        apply_skill_level(&mut state, "scraping", 20).expect("set level");
+        state.tokens = 1_000;
+
+        apply_reset_save(&mut state, 9_000);
+        repo.save(&state).expect("save");
+        let loaded = repo.load().expect("load").expect("saved state");
+
+        assert_eq!(loaded.scraping().level, 1);
+        assert_eq!(loaded.tokens, 0);
+        assert_eq!(loaded.form_stage, 1);
+        assert!(!loaded.has_active_skill());
+        assert_eq!(loaded.last_tick_at, 9_000);
     }
 }

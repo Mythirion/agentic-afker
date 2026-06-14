@@ -1,4 +1,4 @@
 [[permission]]
 identifier = "allow-dev-menu"
 description = "Allows the Game Window dev menu when AGENTIC_AFKER_DEV=1."
-commands.allow = ["is_dev_menu_enabled", "dev_set_skill_level"]
+commands.allow = ["is_dev_menu_enabled", "dev_set_skill_level", "dev_set_tokens", "dev_add_tokens", "dev_reset_save"]

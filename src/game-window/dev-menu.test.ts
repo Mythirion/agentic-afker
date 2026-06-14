@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  bindDevMenuControls,
   mountDevMenuShell,
   renderDevMenu,
   renderDevMenuPanel,
+  syncDevMenuFromSnapshot,
 } from "./dev-menu";
 import type { SkillSnapshot } from "./mount-game-window";
 
@@ -17,14 +17,37 @@ const scrapingSkill: SkillSnapshot = {
   isActive: true,
 };
 
+const devMenuCallbacks = {
+  onSetLevel: vi.fn().mockResolvedValue(undefined),
+  onSetTokens: vi.fn().mockResolvedValue(undefined),
+  onAddTokens: vi.fn().mockResolvedValue(undefined),
+  onResetSave: vi.fn().mockResolvedValue(undefined),
+};
+
 describe("dev menu", () => {
   it("renders skill level controls for each skill", () => {
-    const html = renderDevMenuPanel([scrapingSkill]);
+    const html = renderDevMenuPanel([scrapingSkill], 0);
 
     expect(html).toContain("Scraping");
     expect(html).toContain('data-testid="dev-level-input-scraping"');
     expect(html).toContain('value="3"');
     expect(html).toContain('data-testid="dev-apply-scraping"');
+  });
+
+  it("renders token controls with the current balance", () => {
+    const html = renderDevMenuPanel([scrapingSkill], 250);
+
+    expect(html).toContain('data-testid="dev-token-controls"');
+    expect(html).toContain('data-testid="dev-set-tokens-input"');
+    expect(html).toContain('value="250"');
+    expect(html).toContain('data-testid="dev-add-tokens-apply"');
+  });
+
+  it("renders reset save control", () => {
+    const html = renderDevMenuPanel([scrapingSkill], 0);
+
+    expect(html).toContain('data-testid="dev-reset-save"');
+    expect(html).toContain("Reset Save");
   });
 
   it("mounts dev menu shell into the game window root", () => {
@@ -36,9 +59,12 @@ describe("dev menu", () => {
 
   it("calls onSetLevel when apply is clicked", async () => {
     const container = document.createElement("div");
-    const onSetLevel = vi.fn().mockResolvedValue(undefined);
+    const callbacks = {
+      ...devMenuCallbacks,
+      onSetLevel: vi.fn().mockResolvedValue(undefined),
+    };
 
-    renderDevMenu(container, [scrapingSkill], onSetLevel);
+    renderDevMenu(container, [scrapingSkill], 0, callbacks);
 
     const input = container.querySelector<HTMLInputElement>(
       '[data-testid="dev-level-input-scraping"]',
@@ -53,20 +79,133 @@ describe("dev menu", () => {
     input!.value = "12";
     button!.click();
 
-    expect(onSetLevel).toHaveBeenCalledWith("scraping", 12);
+    expect(callbacks.onSetLevel).toHaveBeenCalledWith("scraping", 12);
+  });
+
+  it("calls onSetTokens when set tokens is clicked", () => {
+    const container = document.createElement("div");
+    const callbacks = {
+      ...devMenuCallbacks,
+      onSetTokens: vi.fn().mockResolvedValue(undefined),
+    };
+
+    renderDevMenu(container, [scrapingSkill], 50, callbacks);
+
+    const input = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-set-tokens-input"]',
+    );
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-testid="dev-set-tokens-apply"]',
+    );
+
+    input!.value = "420";
+    button!.click();
+
+    expect(callbacks.onSetTokens).toHaveBeenCalledWith(420);
+  });
+
+  it("calls onAddTokens when add tokens is clicked", () => {
+    const container = document.createElement("div");
+    const callbacks = {
+      ...devMenuCallbacks,
+      onAddTokens: vi.fn().mockResolvedValue(undefined),
+    };
+
+    renderDevMenu(container, [scrapingSkill], 50, callbacks);
+
+    const input = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-add-tokens-input"]',
+    );
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-testid="dev-add-tokens-apply"]',
+    );
+
+    input!.value = "25";
+    button!.click();
+
+    expect(callbacks.onAddTokens).toHaveBeenCalledWith(25);
+  });
+
+  it("requires confirmation before reset save", () => {
+    const container = document.createElement("div");
+    const callbacks = {
+      ...devMenuCallbacks,
+      onResetSave: vi.fn().mockResolvedValue(undefined),
+    };
+    const originalConfirm = window.confirm;
+    const confirmMock = vi.fn();
+    window.confirm = confirmMock;
+
+    renderDevMenu(container, [scrapingSkill], 0, callbacks);
+
+    const button = container.querySelector<HTMLButtonElement>(
+      '[data-testid="dev-reset-save"]',
+    );
+
+    confirmMock.mockReturnValue(false);
+    button!.click();
+    expect(callbacks.onResetSave).not.toHaveBeenCalled();
+
+    confirmMock.mockReturnValue(true);
+    button!.click();
+    expect(callbacks.onResetSave).toHaveBeenCalledTimes(1);
+
+    window.confirm = originalConfirm;
   });
 
   it("rebinds controls after rerender", () => {
     const container = document.createElement("div");
-    const onSetLevel = vi.fn().mockResolvedValue(undefined);
+    const callbacks = {
+      ...devMenuCallbacks,
+      onSetLevel: vi.fn().mockResolvedValue(undefined),
+    };
 
-    container.innerHTML = renderDevMenuPanel([scrapingSkill]);
-    bindDevMenuControls(container, onSetLevel);
+    renderDevMenu(container, [scrapingSkill], 0, callbacks);
 
     container
       .querySelector<HTMLButtonElement>('[data-testid="dev-apply-scraping"]')
       ?.click();
 
-    expect(onSetLevel).toHaveBeenCalledWith("scraping", 3);
+    expect(callbacks.onSetLevel).toHaveBeenCalledWith("scraping", 3);
+  });
+
+  it("syncDevMenuFromSnapshot updates values but preserves focused input", () => {
+    const container = document.createElement("div");
+    renderDevMenu(container, [scrapingSkill], 50, devMenuCallbacks);
+
+    const levelInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-level-input-scraping"]',
+    )!;
+    levelInput.value = "99";
+    levelInput.dispatchEvent(new FocusEvent("focus"));
+
+    syncDevMenuFromSnapshot(container, [{ ...scrapingSkill, level: 5 }], 200);
+
+    expect(levelInput.value).toBe("99");
+
+    levelInput.dispatchEvent(new FocusEvent("blur"));
+    syncDevMenuFromSnapshot(container, [{ ...scrapingSkill, level: 5 }], 200);
+
+    expect(levelInput.value).toBe("5");
+
+    const setTokensInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-set-tokens-input"]',
+    )!;
+    expect(setTokensInput.value).toBe("200");
+  });
+
+  it("syncDevMenuFromSnapshot preserves focused token input", () => {
+    const container = document.createElement("div");
+    renderDevMenu(container, [scrapingSkill], 50, devMenuCallbacks);
+
+    const setTokensInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-set-tokens-input"]',
+    )!;
+    setTokensInput.value = "999";
+    setTokensInput.dispatchEvent(new FocusEvent("focus"));
+
+    syncDevMenuFromSnapshot(container, [scrapingSkill], 75);
+
+    expect(setTokensInput.value).toBe("999");
   });
 });
