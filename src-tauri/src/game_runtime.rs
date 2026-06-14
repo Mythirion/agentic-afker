@@ -6,8 +6,8 @@ use crate::persistence::SaveRepository;
 use crate::simulation::{
     advance,
     set_active_skill as apply_active_skill,
-    GameState,
-    progress_within_level,
+    ALPHA_PIPELINE_SKILLS, GameState, SkillId, is_skill_locked, labelling_prerequisite_text,
+    progress_within_level, refresh_skill_unlocks,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -29,6 +29,8 @@ pub struct SkillSnapshot {
     pub xp_to_next_level: u64,
     pub level_progress: f64,
     pub is_active: bool,
+    pub is_locked: bool,
+    pub prerequisite: Option<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -55,10 +57,11 @@ impl GameRuntime {
 
         let repo = SaveRepository::open(&save_path).map_err(|err| err.to_string())?;
         let now = now_ms();
-        let state = repo
+        let mut state = repo
             .load()
             .map_err(|err| err.to_string())?
             .unwrap_or_else(|| GameState::new_fresh_start(now));
+        refresh_skill_unlocks(&mut state);
 
         Ok(Self {
             state: Mutex::new(state),
@@ -177,25 +180,10 @@ impl GameRuntime {
 }
 
 pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
-    let mut skills: Vec<SkillSnapshot> = state
-        .skills
+    let skills: Vec<SkillSnapshot> = ALPHA_PIPELINE_SKILLS
         .iter()
-        .map(|(id, skill)| {
-            let (xp_into_level, xp_to_next_level, level_progress) =
-                progress_within_level(skill.level, skill.xp);
-
-            SkillSnapshot {
-                id: id.0.clone(),
-                level: skill.level,
-                xp: skill.xp,
-                xp_into_level,
-                xp_to_next_level,
-                level_progress,
-                is_active: *id == state.active_skill,
-            }
-        })
+        .map(|skill_id| skill_snapshot(state, skill_id))
         .collect();
-    skills.sort_by(|left, right| left.id.cmp(&right.id));
 
     GameStateSnapshot {
         active_skill: state.active_skill.0.clone(),
@@ -203,6 +191,38 @@ pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
         tokens: state.tokens,
         total_level: state.total_level(),
         last_tick_at: state.last_tick_at,
+    }
+}
+
+fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
+    let id = SkillId(skill_id.to_string());
+    let is_locked = is_skill_locked(state, skill_id);
+    let is_active = state.active_skill == id;
+
+    let (level, xp) = state
+        .skills
+        .get(&id)
+        .map(|skill| (skill.level, skill.xp))
+        .unwrap_or((1, 0));
+
+    let (xp_into_level, xp_to_next_level, level_progress) = progress_within_level(level, xp);
+
+    let prerequisite = if is_locked && skill_id == "labelling" {
+        Some(labelling_prerequisite_text().to_string())
+    } else {
+        None
+    };
+
+    SkillSnapshot {
+        id: skill_id.to_string(),
+        level,
+        xp,
+        xp_into_level,
+        xp_to_next_level,
+        level_progress,
+        is_active,
+        is_locked,
+        prerequisite,
     }
 }
 
@@ -266,6 +286,44 @@ mod tests {
         assert_eq!(snapshot.active_skill, "");
         assert!(snapshot.skills.iter().all(|skill| !skill.is_active));
         assert_eq!(snapshot.total_level, 1);
+        assert_eq!(snapshot.skills.len(), 2);
+
+        let labelling = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "labelling")
+            .expect("labelling row");
+        assert!(labelling.is_locked);
+        assert_eq!(
+            labelling.prerequisite.as_deref(),
+            Some("Requires Scraping Lv 5")
+        );
+    }
+
+    #[test]
+    fn snapshot_unlocks_labelling_when_scraping_reaches_threshold() {
+        let mut state = GameState::new_fresh_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 5).expect("level scraping");
+        refresh_skill_unlocks(&mut state);
+
+        let snapshot = to_snapshot(&state);
+        let labelling = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "labelling")
+            .expect("labelling row");
+
+        assert!(!labelling.is_locked);
+        assert!(labelling.prerequisite.is_none());
+    }
+
+    #[test]
+    fn simulation_ticks_independently_of_overlay_visibility() {
+        let mut state = GameState::new_scraping_start(0);
+
+        advance(&mut state, TICK_INTERVAL_MS);
+
+        assert_eq!(state.scraping().xp, 10);
     }
 
     #[test]

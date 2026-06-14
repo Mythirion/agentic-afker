@@ -18,6 +18,7 @@ const scrapingSnapshot: GameWindowSnapshot = {
       xpToNextLevel: 300,
       levelProgress: 50 / 300,
       isActive: true,
+      isLocked: false,
     },
   ],
   tokens: 0,
@@ -56,6 +57,7 @@ describe("mountGameWindow", () => {
           xpToNextLevel: 83,
           levelProgress: 0,
           isActive: false,
+          isLocked: false,
         },
       ],
       tokens: 0,
@@ -86,6 +88,7 @@ describe("mountGameWindow", () => {
           xpToNextLevel: 83,
           levelProgress: 0,
           isActive: false,
+          isLocked: false,
         },
       ],
       tokens: 0,
@@ -116,6 +119,7 @@ describe("mountGameWindow", () => {
           xpToNextLevel: 92,
           levelProgress: 0.5,
           isActive: true,
+          isLocked: false,
         },
       ],
     };
@@ -144,5 +148,47 @@ describe("mountGameWindow", () => {
       '[data-testid="skill-progress-fill-scraping"]',
     ) as HTMLElement | null;
     expect(progressFill?.style.width).toBe("50%");
+  });
+
+  it("renders locked skills with prerequisite text", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "scraping",
+      skills: [
+        {
+          id: "scraping",
+          level: 4,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: true,
+          isLocked: false,
+        },
+        {
+          id: "labelling",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: true,
+          prerequisite: "Requires Scraping Lv 5",
+        },
+      ],
+      tokens: 12,
+      totalLevel: 4,
+      lastTickAt: 0,
+    });
+
+    expect(root.querySelector('[data-testid="token-balance"]')?.textContent).toBe("12");
+    expect(root.querySelector('[data-testid="skill-locked-labelling"]')).not.toBeNull();
+    expect(
+      root.querySelector('[data-testid="skill-prerequisite-labelling"]')?.textContent?.trim(),
+    ).toBe("Requires Scraping Lv 5");
+    expect(root.querySelector('[data-testid="start-skill-labelling"]')).toBeNull();
   });
 });

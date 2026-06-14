@@ -15,6 +15,7 @@ const scrapingSkill: SkillSnapshot = {
   xpToNextLevel: 102,
   levelProgress: 0,
   isActive: true,
+  isLocked: false,
 };
 
 const devMenuCallbacks = {
