@@ -4,6 +4,7 @@ import {
   mountDevMenuShell,
   renderDevMenu,
   renderDevMenuPanel,
+  syncDevMenuFromSnapshot,
 } from "./dev-menu";
 import type { SkillSnapshot } from "./mount-game-window";
 
@@ -160,13 +161,52 @@ describe("dev menu", () => {
       onSetLevel: vi.fn().mockResolvedValue(undefined),
     };
 
-    container.innerHTML = renderDevMenuPanel([scrapingSkill], 0);
-    bindDevMenuControls(container, callbacks);
+    renderDevMenu(container, [scrapingSkill], 0, callbacks);
 
     container
       .querySelector<HTMLButtonElement>('[data-testid="dev-apply-scraping"]')
       ?.click();
 
     expect(callbacks.onSetLevel).toHaveBeenCalledWith("scraping", 3);
+  });
+
+  it("syncDevMenuFromSnapshot updates values but preserves focused input", () => {
+    const container = document.createElement("div");
+    renderDevMenu(container, [scrapingSkill], 50, devMenuCallbacks);
+
+    const levelInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-level-input-scraping"]',
+    )!;
+    levelInput.value = "99";
+    levelInput.dispatchEvent(new FocusEvent("focus"));
+
+    syncDevMenuFromSnapshot(container, [{ ...scrapingSkill, level: 5 }], 200);
+
+    expect(levelInput.value).toBe("99");
+
+    levelInput.dispatchEvent(new FocusEvent("blur"));
+    syncDevMenuFromSnapshot(container, [{ ...scrapingSkill, level: 5 }], 200);
+
+    expect(levelInput.value).toBe("5");
+
+    const setTokensInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-set-tokens-input"]',
+    )!;
+    expect(setTokensInput.value).toBe("200");
+  });
+
+  it("syncDevMenuFromSnapshot preserves focused token input", () => {
+    const container = document.createElement("div");
+    renderDevMenu(container, [scrapingSkill], 50, devMenuCallbacks);
+
+    const setTokensInput = container.querySelector<HTMLInputElement>(
+      '[data-testid="dev-set-tokens-input"]',
+    )!;
+    setTokensInput.value = "999";
+    setTokensInput.dispatchEvent(new FocusEvent("focus"));
+
+    syncDevMenuFromSnapshot(container, [scrapingSkill], 75);
+
+    expect(setTokensInput.value).toBe("999");
   });
 });

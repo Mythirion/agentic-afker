@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { startCurrentActionProgressLoop } from "./game-window/action-progress";
-import { mountDevMenu, renderDevMenu } from "./game-window/dev-menu";
+import { mountDevMenu, renderDevMenu, syncDevMenuFromSnapshot } from "./game-window/dev-menu";
 import {
   bindSkillListActions,
   hasActiveSkill,
@@ -15,6 +15,21 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
 
   const devMenuEnabled = await invoke<boolean>("is_dev_menu_enabled");
   const devMenuRoot = devMenuEnabled ? mountDevMenu(root) : null;
+  let devMenuMounted = false;
+  const devMenuCallbacks = {
+    onSetLevel: async (skillId: string, level: number) => {
+      await invoke("dev_set_skill_level", { skillId, level });
+    },
+    onSetTokens: async (amount: number) => {
+      await invoke("dev_set_tokens", { amount });
+    },
+    onAddTokens: async (amount: number) => {
+      await invoke("dev_add_tokens", { amount });
+    },
+    onResetSave: async () => {
+      await invoke("dev_reset_save");
+    },
+  };
   let actionCycleStartedAt = Date.now();
   let activeSkill = "";
 
@@ -27,20 +42,12 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
     });
 
     if (devMenuRoot) {
-      renderDevMenu(devMenuRoot, snapshot.skills, snapshot.tokens, {
-        onSetLevel: async (skillId, level) => {
-          await invoke("dev_set_skill_level", { skillId, level });
-        },
-        onSetTokens: async (amount) => {
-          await invoke("dev_set_tokens", { amount });
-        },
-        onAddTokens: async (amount) => {
-          await invoke("dev_add_tokens", { amount });
-        },
-        onResetSave: async () => {
-          await invoke("dev_reset_save");
-        },
-      });
+      if (!devMenuMounted) {
+        renderDevMenu(devMenuRoot, snapshot.skills, snapshot.tokens, devMenuCallbacks);
+        devMenuMounted = true;
+      } else {
+        syncDevMenuFromSnapshot(devMenuRoot, snapshot.skills, snapshot.tokens);
+      }
     }
   };
 

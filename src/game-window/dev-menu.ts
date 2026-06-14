@@ -217,6 +217,43 @@ export function bindDevMenuControls(
   });
 }
 
+function isDevMenuInputEditing(input: HTMLInputElement): boolean {
+  return input.dataset.devMenuEditing === "true";
+}
+
+function trackDevMenuInputEditing(container: HTMLElement): void {
+  container.querySelectorAll<HTMLInputElement>(".dev-menu__input").forEach((input) => {
+    input.addEventListener("focus", () => {
+      input.dataset.devMenuEditing = "true";
+    });
+    input.addEventListener("blur", () => {
+      delete input.dataset.devMenuEditing;
+    });
+  });
+}
+
+export function syncDevMenuFromSnapshot(
+  container: HTMLElement,
+  skills: SkillSnapshot[],
+  tokens: number,
+): void {
+  for (const skill of skills) {
+    const input = container.querySelector<HTMLInputElement>(
+      `[data-testid="dev-level-input-${skill.id}"]`,
+    );
+    if (input && !isDevMenuInputEditing(input)) {
+      input.value = String(skill.level);
+    }
+  }
+
+  const setTokensInput = container.querySelector<HTMLInputElement>(
+    '[data-testid="dev-set-tokens-input"]',
+  );
+  if (setTokensInput && !isDevMenuInputEditing(setTokensInput)) {
+    setTokensInput.value = String(tokens);
+  }
+}
+
 export function renderDevMenu(
   container: HTMLElement,
   skills: SkillSnapshot[],
@@ -224,5 +261,6 @@ export function renderDevMenu(
   callbacks: DevMenuCallbacks,
 ): void {
   container.innerHTML = renderDevMenuPanel(skills, tokens);
+  trackDevMenuInputEditing(container);
   bindDevMenuControls(container, callbacks);
 }
