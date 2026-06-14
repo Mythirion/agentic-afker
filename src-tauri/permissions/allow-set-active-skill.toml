@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-set-active-skill"
+description = "Allows the Game Window to start a Skill action."
+commands.allow = ["set_active_skill"]

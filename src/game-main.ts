@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { startCurrentActionProgressLoop } from "./game-window/action-progress";
 import { mountDevMenu, renderDevMenu } from "./game-window/dev-menu";
 import {
+  bindSkillListActions,
   hasActiveSkill,
   mountGameWindow,
   renderGameWindowState,
@@ -21,6 +22,9 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
     activeSkill = snapshot.activeSkill;
     actionCycleStartedAt = Date.now();
     renderGameWindowState(root, snapshot);
+    bindSkillListActions(root, async (skillId) => {
+      await invoke("set_active_skill", { skillId });
+    });
 
     if (devMenuRoot) {
       renderDevMenu(devMenuRoot, snapshot.skills, async (skillId, level) => {

@@ -159,6 +159,22 @@ body,
   background: #1b1b26;
 }
 
+.skill-row__start {
+  justify-self: start;
+  padding: 8px 12px;
+  border: 1px solid rgba(120, 180, 255, 0.45);
+  border-radius: 6px;
+  background: rgba(120, 180, 255, 0.12);
+  color: #b8d9ff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skill-row__start:hover {
+  background: rgba(120, 180, 255, 0.22);
+}
+
 .skill-row__header {
   display: flex;
   align-items: center;

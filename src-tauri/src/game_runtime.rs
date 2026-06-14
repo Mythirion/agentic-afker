@@ -1,6 +1,11 @@
 use crate::dev_menu::{apply_skill_level, dev_menu_enabled, DevMenuError};
 use crate::persistence::SaveRepository;
-use crate::simulation::{advance, GameState, progress_within_level};
+use crate::simulation::{
+    advance,
+    set_active_skill as apply_active_skill,
+    GameState,
+    progress_within_level,
+};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -112,6 +117,17 @@ impl GameRuntime {
         *self.ticks_since_save.lock().expect("save ticks lock") = 0;
         self.emit_snapshot(app)
     }
+
+    pub fn activate_skill(&self, app: &AppHandle, skill_id: &str) -> Result<(), String> {
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_active_skill(&mut state, skill_id).map_err(|err| err.to_string())?;
+        }
+
+        self.persist()?;
+        *self.ticks_since_save.lock().expect("save ticks lock") = 0;
+        self.emit_snapshot(app)
+    }
 }
 
 pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
@@ -180,6 +196,15 @@ pub fn save_on_exit(app: &AppHandle) {
 #[tauri::command]
 pub fn get_game_state(runtime: State<'_, GameRuntime>) -> GameStateSnapshot {
     runtime.snapshot()
+}
+
+#[tauri::command]
+pub fn set_active_skill(
+    skill_id: String,
+    runtime: State<'_, GameRuntime>,
+    app: AppHandle,
+) -> Result<(), String> {
+    runtime.activate_skill(&app, &skill_id)
 }
 
 #[cfg(test)]

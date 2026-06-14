@@ -11,6 +11,7 @@
     "global-shortcut:allow-is-registered",
     "allow-open-game-window",
     "allow-get-game-state",
-    "allow-dev-menu"
+    "allow-dev-menu",
+    "allow-set-active-skill"
   ]
 }

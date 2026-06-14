@@ -113,6 +113,19 @@ function renderSkillRow(skill: SkillSnapshot): string {
           ${skill.xpIntoLevel} / ${skill.xpToNextLevel} XP
         </span>
       </div>
+      ${
+        skill.isActive
+          ? ""
+          : `<button
+          type="button"
+          class="skill-row__start"
+          data-action="start-skill"
+          data-skill-id="${skill.id}"
+          data-testid="start-skill-${skill.id}"
+        >
+          Start ${formatSkillLabel(skill.id)}
+        </button>`
+      }
     </li>
   `;
 }
@@ -164,6 +177,24 @@ export function renderGameWindowState(
   actionBar.setAttribute("aria-label", `${activeSkillLabel} action progress`);
   currentAction.classList.toggle("current-action--idle", idle);
   skillList.innerHTML = snapshot.skills.map(renderSkillRow).join("");
+}
+
+export function bindSkillListActions(
+  root: HTMLElement,
+  onStartSkill: (skillId: string) => Promise<void>,
+): void {
+  root.querySelectorAll<HTMLButtonElement>('[data-action="start-skill"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      const skillId = button.dataset.skillId;
+      if (!skillId) {
+        return;
+      }
+
+      void onStartSkill(skillId).catch((error: unknown) => {
+        console.error("failed to start skill", error);
+      });
+    });
+  });
 }
 
 export function mountGameWindow(root: HTMLElement): void {

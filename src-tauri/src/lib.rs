@@ -15,7 +15,7 @@ mod window_manager;
 use app_shell_state::AppShellState;
 use commands::open_game_window;
 use dev_menu::{dev_set_skill_level, is_dev_menu_enabled};
-use game_runtime::{get_game_state, save_on_exit, start_tick_loop, GameRuntime};
+use game_runtime::{get_game_state, save_on_exit, set_active_skill, start_tick_loop, GameRuntime};
 #[cfg(desktop)]
 use hotkey_registry::register_interact_mode_hotkey;
 use interact_mode::{InteractMode, InteractModeState};
@@ -42,6 +42,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             open_game_window,
             get_game_state,
+            set_active_skill,
             is_dev_menu_enabled,
             dev_set_skill_level
         ])
