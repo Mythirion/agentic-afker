@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  bindSkillListActions,
   GAME_WINDOW_HEADER,
   mountGameWindow,
   renderGameWindowState,
@@ -13,6 +14,9 @@ const scrapingSnapshot: GameWindowSnapshot = {
       id: "scraping",
       level: 2,
       xp: 150,
+      xpIntoLevel: 50,
+      xpToNextLevel: 300,
+      levelProgress: 50 / 300,
       isActive: true,
     },
   ],
@@ -37,19 +41,108 @@ describe("mountGameWindow", () => {
     );
   });
 
-  it("renders scraping level, xp, and active-skill indicator from snapshot", () => {
+  it("renders idle current action on a fresh save", () => {
     const root = document.createElement("div");
     mountGameWindow(root);
 
-    renderGameWindowState(root, scrapingSnapshot);
+    renderGameWindowState(root, {
+      activeSkill: "",
+      skills: [
+        {
+          id: "scraping",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+        },
+      ],
+      tokens: 0,
+      totalLevel: 1,
+      lastTickAt: 0,
+    });
+
+    expect(root.querySelector('[data-testid="current-action-name"]')?.textContent).toBe(
+      "Idle",
+    );
+    expect(root.querySelector(".current-action--idle")).not.toBeNull();
+    expect(root.querySelector('[data-testid="active-skill-indicator"]')).toBeNull();
+    expect(root.querySelector('[data-testid="start-skill-scraping"]')).not.toBeNull();
+  });
+
+  it("calls onStartSkill when start button is clicked", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "",
+      skills: [
+        {
+          id: "scraping",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+        },
+      ],
+      tokens: 0,
+      totalLevel: 1,
+      lastTickAt: 0,
+    });
+
+    const onStartSkill = vi.fn().mockResolvedValue(undefined);
+    bindSkillListActions(root, onStartSkill);
+
+    root.querySelector<HTMLButtonElement>('[data-testid="start-skill-scraping"]')?.click();
+
+    expect(onStartSkill).toHaveBeenCalledWith("scraping");
+  });
+
+    it("renders scraping level, xp, active indicator, and progress bar from snapshot", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    const snapshot: GameWindowSnapshot = {
+      ...scrapingSnapshot,
+      skills: [
+        {
+          id: "scraping",
+          level: 2,
+          xp: 175,
+          xpIntoLevel: 92,
+          xpToNextLevel: 92,
+          levelProgress: 0.5,
+          isActive: true,
+        },
+      ],
+    };
+
+    renderGameWindowState(root, snapshot);
+
+    expect(root.querySelector('[data-testid="current-action-name"]')?.textContent).toBe(
+      "Scraping",
+    );
+    expect(root.querySelector('[data-testid="current-action-progress"]')).not.toBeNull();
 
     expect(root.querySelector('[data-testid="skill-level-scraping"]')?.textContent).toBe(
       "Lv 2",
     );
-    expect(root.querySelector('[data-testid="skill-xp-scraping"]')?.textContent).toBe(
-      "150 XP",
+    expect(root.querySelector('[data-testid="skill-xp-scraping"]')?.textContent?.trim()).toBe(
+      "92 / 92 XP",
     );
     expect(root.querySelector('[data-testid="active-skill-indicator"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="start-skill-scraping"]')).toBeNull();
     expect(root.querySelector('[data-testid="total-level"]')?.textContent).toBe("2");
+
+    const progressBar = root.querySelector('[data-testid="skill-progress-scraping"]');
+    expect(progressBar?.getAttribute("aria-valuenow")).toBe("50");
+
+    const progressFill = root.querySelector(
+      '[data-testid="skill-progress-fill-scraping"]',
+    ) as HTMLElement | null;
+    expect(progressFill?.style.width).toBe("50%");
   });
 });

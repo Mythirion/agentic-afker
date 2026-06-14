@@ -1,0 +1,111 @@
+//! Dev menu — playtesting helpers gated by `AGENTIC_AFKER_DEV=1`.
+
+use crate::simulation::{GameState, SkillId, xp_for_level};
+
+pub const DEV_MENU_ENV_VAR: &str = "AGENTIC_AFKER_DEV";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DevMenuError {
+    DevMenuDisabled,
+    SkillNotFound(String),
+    InvalidLevel,
+}
+
+impl std::fmt::Display for DevMenuError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DevMenuDisabled => write!(f, "dev menu is not enabled"),
+            Self::SkillNotFound(skill_id) => write!(f, "unknown skill: {skill_id}"),
+            Self::InvalidLevel => write!(f, "level must be at least 1"),
+        }
+    }
+}
+
+pub fn dev_menu_enabled() -> bool {
+    dev_menu_enabled_for(std::env::var(DEV_MENU_ENV_VAR).ok())
+}
+
+fn dev_menu_enabled_for(value: Option<String>) -> bool {
+    matches!(value.as_deref(), Some("1"))
+}
+
+pub fn apply_skill_level(
+    state: &mut GameState,
+    skill_id: &str,
+    level: u32,
+) -> Result<(), DevMenuError> {
+    if level < 1 {
+        return Err(DevMenuError::InvalidLevel);
+    }
+
+    let id = SkillId(skill_id.to_string());
+    let skill = state
+        .skills
+        .get_mut(&id)
+        .ok_or_else(|| DevMenuError::SkillNotFound(skill_id.to_string()))?;
+
+    skill.level = level;
+    skill.xp = xp_for_level(level);
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn is_dev_menu_enabled() -> bool {
+    dev_menu_enabled()
+}
+
+#[tauri::command]
+pub fn dev_set_skill_level(
+    skill_id: String,
+    level: u32,
+    runtime: tauri::State<crate::game_runtime::GameRuntime>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    runtime.dev_set_skill_level(&app, &skill_id, level)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::simulation::GameState;
+
+    #[test]
+    fn dev_menu_disabled_without_env_value() {
+        assert!(!dev_menu_enabled_for(None));
+        assert!(!dev_menu_enabled_for(Some("0".to_string())));
+        assert!(!dev_menu_enabled_for(Some("true".to_string())));
+    }
+
+    #[test]
+    fn dev_menu_enabled_when_env_is_one() {
+        assert!(dev_menu_enabled_for(Some("1".to_string())));
+    }
+
+    #[test]
+    fn apply_skill_level_snaps_xp_to_runescape_floor() {
+        let mut state = GameState::new_scraping_start(0);
+
+        apply_skill_level(&mut state, "scraping", 10).expect("set level");
+
+        let scraping = state.scraping();
+        assert_eq!(scraping.level, 10);
+        assert_eq!(scraping.xp, xp_for_level(10));
+    }
+
+    #[test]
+    fn apply_skill_level_rejects_unknown_skill() {
+        let mut state = GameState::new_scraping_start(0);
+
+        let error = apply_skill_level(&mut state, "labelling", 5).expect_err("unknown skill");
+        assert_eq!(error, DevMenuError::SkillNotFound("labelling".to_string()));
+    }
+
+    #[test]
+    fn apply_skill_level_rejects_level_zero() {
+        let mut state = GameState::new_scraping_start(0);
+
+        let error = apply_skill_level(&mut state, "scraping", 0).expect_err("invalid level");
+        assert_eq!(error, DevMenuError::InvalidLevel);
+    }
+}

@@ -58,6 +58,7 @@ done
 if [[ -d "$RELEASE_DIR/resources" ]]; then
   cp -r "$RELEASE_DIR/resources" "$OUT_DIR/"
 fi
+cp "$ROOT/scripts/run-dev.bat" "$OUT_DIR/"
 
 echo
 echo "Done. Portable bundle:"

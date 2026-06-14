@@ -67,6 +67,8 @@ jobs:
             Copy-Item "$releaseDir/resources" $stageDir -Recurse
           }
 
+          Copy-Item "scripts/run-dev.bat" $stageDir
+
           if (Get-ChildItem -Path $stageDir -Filter "*.zip" -Recurse) {
             throw "Refusing to upload nested zip inside staged portable bundle"
           }

@@ -170,7 +170,8 @@ impl SaveRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::{advance, GameState};
+    use crate::simulation::{advance, GameState, xp_for_level};
+    use crate::dev_menu::apply_skill_level;
 
     #[test]
     fn round_trip_persists_scraping_progress_and_last_tick_at() {
@@ -191,5 +192,31 @@ mod tests {
     fn load_returns_none_for_empty_database() {
         let repo = SaveRepository::open_in_memory().expect("in-memory db");
         assert!(repo.load().expect("load").is_none());
+    }
+
+    #[test]
+    fn round_trip_persists_fresh_idle_start() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+        let state = GameState::new_fresh_start(1_000);
+
+        repo.save(&state).expect("save");
+        let loaded = repo.load().expect("load").expect("saved state");
+
+        assert!(!loaded.has_active_skill());
+        assert_eq!(loaded.scraping().xp, 0);
+        assert_eq!(loaded.last_tick_at, 1_000);
+    }
+
+    #[test]
+    fn round_trip_persists_dev_set_skill_level() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+        let mut state = GameState::new_scraping_start(0);
+        apply_skill_level(&mut state, "scraping", 15).expect("set level");
+
+        repo.save(&state).expect("save");
+        let loaded = repo.load().expect("load").expect("saved state");
+
+        assert_eq!(loaded.scraping().level, 15);
+        assert_eq!(loaded.scraping().xp, xp_for_level(15));
     }
 }
