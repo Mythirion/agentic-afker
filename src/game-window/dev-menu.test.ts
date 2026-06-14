@@ -16,6 +16,7 @@ const scrapingSkill: SkillSnapshot = {
   levelProgress: 0,
   isActive: true,
   isLocked: false,
+  rawData: 0,
 };
 
 describe("dev menu", () => {
