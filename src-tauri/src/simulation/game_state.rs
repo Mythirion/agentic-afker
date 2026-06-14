@@ -9,6 +9,10 @@ impl SkillId {
         Self("scraping".to_string())
     }
 
+    pub fn labelling() -> Self {
+        Self("labelling".to_string())
+    }
+
     pub fn idle() -> Self {
         Self(String::new())
     }

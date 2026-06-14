@@ -11,6 +11,8 @@ export interface SkillSnapshot {
   xpToNextLevel: number;
   levelProgress: number;
   isActive: boolean;
+  isLocked: boolean;
+  prerequisite?: string;
 }
 
 export interface GameWindowSnapshot {
@@ -28,6 +30,7 @@ export const GAME_WINDOW_HEADER: GameWindowHeader = {
 
 const SKILL_LABELS: Record<string, string> = {
   scraping: "Scraping",
+  labelling: "Labelling",
 };
 
 function formatSkillLabel(skillId: string): string {
@@ -77,6 +80,22 @@ function formatProgressPercent(progress: number): string {
 }
 
 function renderSkillRow(skill: SkillSnapshot): string {
+  if (skill.isLocked) {
+    return `
+    <li class="skill-row skill-row--locked" data-testid="skill-${skill.id}">
+      <div class="skill-row__header">
+        <span class="skill-row__name">${formatSkillLabel(skill.id)}</span>
+        <span class="skill-row__badge skill-row__badge--locked" data-testid="skill-locked-${skill.id}">
+          Locked
+        </span>
+      </div>
+      <p class="skill-row__prerequisite" data-testid="skill-prerequisite-${skill.id}">
+        ${skill.prerequisite ?? "Locked"}
+      </p>
+    </li>
+  `;
+  }
+
   const activeClass = skill.isActive ? " skill-row--active" : "";
   const activeAttr = skill.isActive ? ' data-active="true"' : "";
   const progressPercent = formatProgressPercent(skill.levelProgress);

@@ -186,6 +186,23 @@ body,
   box-shadow: inset 0 0 0 1px rgba(120, 180, 255, 0.2);
 }
 
+.skill-row--locked {
+  opacity: 0.72;
+  background: #17171f;
+}
+
+.skill-row__prerequisite {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.skill-row__badge--locked {
+  color: #ffb4b4;
+  border-color: rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.12);
+}
+
 .skill-row--placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
