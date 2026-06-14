@@ -1,5 +1,8 @@
 mod app_shell_state;
 mod commands;
+mod game_runtime;
+mod persistence;
+mod simulation;
 #[cfg(desktop)]
 mod hotkey_registry;
 mod interact_mode;
@@ -10,6 +13,7 @@ mod window_manager;
 
 use app_shell_state::AppShellState;
 use commands::open_game_window;
+use game_runtime::{get_game_state, save_on_exit, start_tick_loop, GameRuntime};
 #[cfg(desktop)]
 use hotkey_registry::register_interact_mode_hotkey;
 use interact_mode::{InteractMode, InteractModeState};
@@ -33,13 +37,22 @@ pub fn run() {
     }
 
     builder
-        .invoke_handler(tauri::generate_handler![open_game_window])
+        .invoke_handler(tauri::generate_handler![open_game_window, get_game_state])
         .on_window_event(|window, event| {
             handle_window_event(window, event);
             handle_game_window_event(window, event);
         })
         .setup(move |app| {
             build_tray(app.handle())?;
+
+            let runtime = GameRuntime::initialize(app.handle())?;
+            app.manage(runtime);
+
+            if let Some(runtime) = app.try_state::<GameRuntime>() {
+                let _ = runtime.emit_snapshot(app.handle());
+            }
+
+            start_tick_loop(app.handle().clone());
 
             let window = app
                 .get_webview_window(overlay.label)
@@ -58,5 +71,10 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app_handle, event| handle_exit_requested(app_handle, &event));
+        .run(|app_handle, event| {
+            handle_exit_requested(app_handle, &event);
+            if matches!(event, tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit) {
+                save_on_exit(app_handle);
+            }
+        });
 }
