@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 use std::fmt;
 use std::path::Path;
 
-pub const SCHEMA_VERSION: i32 = 1;
+pub const SCHEMA_VERSION: i32 = 2;
 
 #[derive(Debug)]
 pub enum SaveError {
@@ -61,6 +61,9 @@ impl SaveRepository {
                 xp INTEGER NOT NULL,
                 resources INTEGER NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS purchased_upgrades (
+                upgrade_id TEXT PRIMARY KEY
+            );
             ",
         )?;
         Ok(())
@@ -92,7 +95,7 @@ impl SaveRepository {
         let (schema_version, last_tick_at, active_skill, tokens, form_stage, offline_cap_hours) =
             meta_row;
 
-        if schema_version != SCHEMA_VERSION {
+        if schema_version != SCHEMA_VERSION && schema_version != 1 {
             return Err(SaveError::Database(rusqlite::Error::InvalidColumnType(
                 0,
                 "schema_version".to_string(),
@@ -120,10 +123,22 @@ impl SaveRepository {
             skills.insert(skill_id, skill_state);
         }
 
+        let mut purchased_upgrades = std::collections::HashSet::new();
+        if schema_version >= 2 {
+            let mut upgrades_stmt = self
+                .connection
+                .prepare("SELECT upgrade_id FROM purchased_upgrades")?;
+            let upgrade_rows = upgrades_stmt.query_map([], |row| row.get::<_, String>(0))?;
+            for row in upgrade_rows {
+                purchased_upgrades.insert(row?);
+            }
+        }
+
         Ok(Some(GameState {
             skills,
             active_skill: SkillId(active_skill),
             tokens,
+            purchased_upgrades,
             form_stage,
             last_tick_at,
             offline_cap_hours,
@@ -162,8 +177,22 @@ impl SaveRepository {
             )?;
         }
 
+        tx.execute("DELETE FROM purchased_upgrades", [])?;
+
+        for upgrade_id in &state.purchased_upgrades {
+            tx.execute(
+                "INSERT INTO purchased_upgrades (upgrade_id) VALUES (?1)",
+                params![upgrade_id],
+            )?;
+        }
+
         tx.commit()?;
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn connection(&self) -> &Connection {
+        &self.connection
     }
 }
 
@@ -250,5 +279,44 @@ mod tests {
         assert_eq!(loaded.form_stage, 1);
         assert!(!loaded.has_active_skill());
         assert_eq!(loaded.last_tick_at, 9_000);
+    }
+
+    #[test]
+    fn round_trip_persists_purchased_upgrades() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+        let mut state = GameState::new_scraping_start(0);
+        apply_skill_level(&mut state, "scraping", 10).expect("set level");
+        state.tokens = 500;
+        state
+            .purchased_upgrades
+            .insert("scraping-10".to_string());
+
+        repo.save(&state).expect("save");
+        let loaded = repo.load().expect("load").expect("saved state");
+
+        assert!(loaded.purchased_upgrades.contains("scraping-10"));
+    }
+
+    #[test]
+    fn v1_save_loads_with_empty_purchased_upgrades() {
+        let repo = SaveRepository::open_in_memory().expect("in-memory db");
+
+        repo.connection()
+            .execute(
+                "INSERT INTO save_meta (id, schema_version, last_tick_at, active_skill, tokens, form_stage, offline_cap_hours)
+                 VALUES (1, 1, 0, 'scraping', 0, 1, 8)",
+                [],
+            )
+            .expect("insert v1 meta");
+        repo.connection()
+            .execute(
+                "INSERT INTO skills (skill_id, level, xp, resources) VALUES ('scraping', 1, 0, 0)",
+                [],
+            )
+            .expect("insert skill");
+
+        let loaded = repo.load().expect("load").expect("saved state");
+        assert!(loaded.purchased_upgrades.is_empty());
+        assert_eq!(loaded.active_skill, SkillId::scraping());
     }
 }

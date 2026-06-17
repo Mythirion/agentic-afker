@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-purchase-upgrade"
+description = "Allows the Game Window to purchase Skill Upgrades and Infrastructure."
+commands.allow = ["purchase_upgrade"]

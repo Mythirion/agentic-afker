@@ -1,4 +1,5 @@
 use super::game_state::{GameState, SkillId};
+use super::progression::{token_gain, xp_gain};
 use super::skill_content::refresh_skill_unlocks;
 use super::xp_curve::apply_xp;
 
@@ -36,9 +37,10 @@ fn process_tick(state: &mut GameState) {
 }
 
 fn apply_scraping_tick(state: &mut GameState) {
+    let xp_amount = xp_gain(state, "scraping", SCRAPING_XP_PER_TICK);
     let skill_id = SkillId::scraping();
     let skill = state.skills.get_mut(&skill_id).expect("scraping skill exists");
-    let (level, xp) = apply_xp(skill.level, skill.xp, SCRAPING_XP_PER_TICK);
+    let (level, xp) = apply_xp(skill.level, skill.xp, xp_amount);
     skill.level = level;
     skill.xp = xp;
     skill.resources = skill.resources.saturating_add(1);
@@ -61,18 +63,19 @@ fn apply_labelling_tick(state: &mut GameState) {
         .expect("scraping skill exists")
         .resources -= LABELLING_RAW_DATA_PER_TICK;
 
+    let xp_amount = xp_gain(state, "labelling", LABELLING_XP_PER_TICK);
+    let token_amount = token_gain(state, "labelling", LABELLING_TOKENS_PER_TICK);
+
     let labelling = state
         .skills
         .get_mut(&SkillId::labelling())
         .expect("labelling skill exists");
-    let (level, xp) = apply_xp(labelling.level, labelling.xp, LABELLING_XP_PER_TICK);
+    let (level, xp) = apply_xp(labelling.level, labelling.xp, xp_amount);
     labelling.level = level;
     labelling.xp = xp;
     labelling.resources = labelling.resources.saturating_add(1);
 
-    state.tokens = state
-        .tokens
-        .saturating_add(LABELLING_TOKENS_PER_TICK);
+    state.tokens = state.tokens.saturating_add(token_amount);
 }
 
 fn apply_fine_tuning_tick(state: &mut GameState) {
@@ -92,17 +95,18 @@ fn apply_fine_tuning_tick(state: &mut GameState) {
         .expect("labelling skill exists")
         .resources -= FINE_TUNING_LABELLED_DATA_PER_TICK;
 
+    let xp_amount = xp_gain(state, "fine-tuning", FINE_TUNING_XP_PER_TICK);
+    let token_amount = token_gain(state, "fine-tuning", FINE_TUNING_TOKENS_PER_TICK);
+
     let fine_tuning = state
         .skills
         .get_mut(&SkillId::fine_tuning())
         .expect("fine-tuning skill exists");
-    let (level, xp) = apply_xp(fine_tuning.level, fine_tuning.xp, FINE_TUNING_XP_PER_TICK);
+    let (level, xp) = apply_xp(fine_tuning.level, fine_tuning.xp, xp_amount);
     fine_tuning.level = level;
     fine_tuning.xp = xp;
 
-    state.tokens = state
-        .tokens
-        .saturating_add(FINE_TUNING_TOKENS_PER_TICK);
+    state.tokens = state.tokens.saturating_add(token_amount);
 }
 
 #[cfg(test)]

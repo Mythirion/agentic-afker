@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   bindSkillListActions,
+  bindUpgradeShopActions,
   GAME_WINDOW_HEADER,
   mountGameWindow,
   renderGameWindowState,
@@ -25,6 +26,7 @@ const scrapingSnapshot: GameWindowSnapshot = {
   ],
   tokens: 0,
   totalLevel: 2,
+  upgrades: [],
   lastTickAt: 1_000,
 };
 
@@ -66,6 +68,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 1,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -99,6 +102,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 1,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -193,6 +197,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 12,
       totalLevel: 4,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -239,6 +244,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 2,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -295,6 +301,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 6,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -353,6 +360,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 12,
       totalLevel: 13,
+      upgrades: [],
       lastTickAt: 0,
     });
 
@@ -361,5 +369,108 @@ describe("mountGameWindow", () => {
     ).toBe("Labelled data: 15");
     expect(root.querySelector('[data-testid="skill-labelled-data-scraping"]')).toBeNull();
     expect(root.querySelector('[data-testid="skill-labelled-data-fine-tuning"]')).toBeNull();
+  });
+
+  it("renders upgrade shop with purchasable and locked offers", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "scraping",
+      skills: [
+        {
+          id: "scraping",
+          level: 10,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: true,
+          isLocked: false,
+          rawData: 0,
+          labelledData: 0,
+        },
+      ],
+      tokens: 50,
+      totalLevel: 10,
+      upgrades: [
+        {
+          id: "scraping-10",
+          name: "Scraping Lv 10 Upgrade",
+          description: "+10% XP rate",
+          cost: 100,
+          isPurchased: false,
+          canPurchase: false,
+          lockReason: "Not enough Tokens",
+        },
+        {
+          id: "expanded-context-window",
+          name: "Expanded Context Window",
+          description: "+10% Token yield (all Production Skills)",
+          cost: 1000,
+          isPurchased: false,
+          canPurchase: false,
+          lockReason: "Requires Total Level 20",
+        },
+      ],
+      lastTickAt: 0,
+    });
+
+    expect(root.querySelector('[data-testid="upgrade-list"]')).not.toBeNull();
+    expect(
+      root.querySelector('[data-testid="upgrade-cost-scraping-10"]')?.textContent?.trim(),
+    ).toBe("100 Tokens");
+    expect(
+      root.querySelector<HTMLButtonElement>('[data-testid="purchase-upgrade-scraping-10"]')
+        ?.disabled,
+    ).toBe(true);
+    expect(
+      root.querySelector('[data-testid="upgrade-lock-scraping-10"]')?.textContent?.trim(),
+    ).toBe("Not enough Tokens");
+  });
+
+  it("calls onPurchaseUpgrade when purchase button is clicked", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "scraping",
+      skills: [
+        {
+          id: "scraping",
+          level: 10,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: true,
+          isLocked: false,
+          rawData: 0,
+          labelledData: 0,
+        },
+      ],
+      tokens: 500,
+      totalLevel: 10,
+      upgrades: [
+        {
+          id: "scraping-10",
+          name: "Scraping Lv 10 Upgrade",
+          description: "+10% XP rate",
+          cost: 100,
+          isPurchased: false,
+          canPurchase: true,
+        },
+      ],
+      lastTickAt: 0,
+    });
+
+    const onPurchaseUpgrade = vi.fn().mockResolvedValue(undefined);
+    bindUpgradeShopActions(root, onPurchaseUpgrade);
+
+    root
+      .querySelector<HTMLButtonElement>('[data-testid="purchase-upgrade-scraping-10"]')
+      ?.click();
+
+    expect(onPurchaseUpgrade).toHaveBeenCalledWith("scraping-10");
   });
 });

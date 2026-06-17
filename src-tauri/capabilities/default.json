@@ -12,6 +12,7 @@
     "allow-open-game-window",
     "allow-get-game-state",
     "allow-dev-menu",
-    "allow-set-active-skill"
+    "allow-set-active-skill",
+    "allow-purchase-upgrade"
   ]
 }
