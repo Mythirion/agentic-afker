@@ -1,5 +1,5 @@
 use super::game_state::{GameState, SkillId};
-use super::progression::{token_gain, xp_gain};
+use super::progression::{refresh_form_stage, token_gain, xp_gain};
 use super::skill_content::refresh_skill_unlocks;
 use super::xp_curve::apply_xp;
 
@@ -18,6 +18,7 @@ pub fn advance(state: &mut GameState, elapsed_ms: u64) {
     for _ in 0..ticks {
         refresh_skill_unlocks(state);
         process_tick(state);
+        refresh_form_stage(state);
         state.last_tick_at += TICK_MS as i64;
     }
 }

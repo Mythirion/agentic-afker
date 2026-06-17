@@ -1,6 +1,6 @@
 //! Dev menu — playtesting helpers gated by `AGENTIC_AFKER_DEV=1`.
 
-use crate::simulation::{GameState, SkillId, refresh_skill_unlocks, xp_for_level};
+use crate::simulation::{GameState, SkillId, refresh_form_stage, refresh_skill_unlocks, xp_for_level};
 
 pub const DEV_MENU_ENV_VAR: &str = "AGENTIC_AFKER_DEV";
 
@@ -60,6 +60,7 @@ pub fn apply_skill_level(
 
     skill.level = level;
     skill.xp = xp_for_level(level);
+    refresh_form_stage(state);
 
     Ok(())
 }

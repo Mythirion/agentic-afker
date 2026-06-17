@@ -32,6 +32,7 @@ export interface GameWindowSnapshot {
   skills: SkillSnapshot[];
   tokens: number;
   totalLevel: number;
+  formStage: number;
   upgrades: UpgradeSnapshot[];
   lastTickAt: number;
 }

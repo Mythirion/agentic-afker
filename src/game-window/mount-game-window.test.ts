@@ -26,6 +26,7 @@ const scrapingSnapshot: GameWindowSnapshot = {
   ],
   tokens: 0,
   totalLevel: 2,
+  formStage: 1,
   upgrades: [],
   lastTickAt: 1_000,
 };
@@ -68,6 +69,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 1,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -102,6 +104,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 1,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -197,6 +200,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 12,
       totalLevel: 4,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -244,6 +248,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 2,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -301,6 +306,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 0,
       totalLevel: 6,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -360,6 +366,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 12,
       totalLevel: 13,
+      formStage: 1,
       upgrades: [],
       lastTickAt: 0,
     });
@@ -393,6 +400,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 50,
       totalLevel: 10,
+      formStage: 1,
       upgrades: [
         {
           id: "scraping-10",
@@ -451,6 +459,7 @@ describe("mountGameWindow", () => {
       ],
       tokens: 500,
       totalLevel: 10,
+      formStage: 1,
       upgrades: [
         {
           id: "scraping-10",
