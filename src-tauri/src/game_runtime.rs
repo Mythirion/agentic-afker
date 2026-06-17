@@ -9,7 +9,8 @@ use crate::simulation::{
     set_active_skill as apply_active_skill,
     upgrade_snapshots,
     ALPHA_PIPELINE_SKILLS, GameState, PurchaseError, SkillId, fine_tuning_prerequisite_text,
-    is_skill_locked, labelling_prerequisite_text, progress_within_level, refresh_skill_unlocks,
+    is_skill_locked, labelling_prerequisite_text, progress_within_level, refresh_form_stage,
+    refresh_skill_unlocks,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -56,6 +57,7 @@ pub struct GameStateSnapshot {
     pub skills: Vec<SkillSnapshot>,
     pub tokens: u64,
     pub total_level: u32,
+    pub form_stage: u32,
     pub upgrades: Vec<UpgradeSnapshot>,
     pub last_tick_at: i64,
 }
@@ -79,6 +81,7 @@ impl GameRuntime {
             .map_err(|err| err.to_string())?
             .unwrap_or_else(|| GameState::new_fresh_start(now));
         refresh_skill_unlocks(&mut state);
+        refresh_form_stage(&mut state);
 
         Ok(Self {
             state: Mutex::new(state),
@@ -216,6 +219,7 @@ pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
         skills,
         tokens: state.tokens,
         total_level: state.total_level(),
+        form_stage: state.form_stage,
         upgrades: upgrade_snapshots(state)
             .into_iter()
             .map(|offer| UpgradeSnapshot {
@@ -346,6 +350,7 @@ mod tests {
         assert_eq!(snapshot.active_skill, "");
         assert!(snapshot.skills.iter().all(|skill| !skill.is_active));
         assert_eq!(snapshot.total_level, 1);
+        assert_eq!(snapshot.form_stage, 1);
         assert_eq!(snapshot.skills.len(), 3);
 
         let labelling = snapshot
@@ -467,6 +472,18 @@ mod tests {
             .find(|skill| skill.id == "labelling")
             .expect("labelling skill");
         assert_eq!(labelling.labelled_data, 5);
+    }
+
+    #[test]
+    fn snapshot_reflects_form_stage_after_total_level_threshold() {
+        let mut state = GameState::new_scraping_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 30).expect("set level");
+        crate::simulation::refresh_form_stage(&mut state);
+
+        let snapshot = to_snapshot(&state);
+
+        assert_eq!(snapshot.form_stage, 2);
+        assert_eq!(snapshot.total_level, 30);
     }
 
     #[test]
