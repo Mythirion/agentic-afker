@@ -14,6 +14,7 @@ export interface SkillSnapshot {
   isLocked: boolean;
   prerequisite?: string;
   rawData: number;
+  labelledData: number;
 }
 
 export interface GameWindowSnapshot {
@@ -32,6 +33,7 @@ export const GAME_WINDOW_HEADER: GameWindowHeader = {
 const SKILL_LABELS: Record<string, string> = {
   scraping: "Scraping",
   labelling: "Labelling",
+  "fine-tuning": "Fine-Tuning",
 };
 
 function formatSkillLabel(skillId: string): string {
@@ -136,6 +138,11 @@ function renderSkillRow(skill: SkillSnapshot): string {
       ${
         skill.id === "scraping"
           ? `<span class="skill-row__resource" data-testid="skill-raw-data-${skill.id}">Raw data: ${skill.rawData}</span>`
+          : ""
+      }
+      ${
+        skill.id === "labelling"
+          ? `<span class="skill-row__resource" data-testid="skill-labelled-data-${skill.id}">Labelled data: ${skill.labelledData}</span>`
           : ""
       }
       ${

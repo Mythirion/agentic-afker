@@ -57,10 +57,10 @@ mod tests {
     fn set_active_skill_rejects_unknown_skill() {
         let mut state = GameState::new_fresh_start(0);
 
-        let error = set_active_skill(&mut state, "fine-tuning").expect_err("unknown skill");
+        let error = set_active_skill(&mut state, "orchestration").expect_err("unknown skill");
         assert_eq!(
             error,
-            SetActiveSkillError::SkillNotFound("fine-tuning".to_string())
+            SetActiveSkillError::SkillNotFound("orchestration".to_string())
         );
     }
 
@@ -89,6 +89,42 @@ mod tests {
         set_active_skill(&mut state, "labelling").expect("activate labelling");
 
         assert_eq!(state.active_skill, SkillId::labelling());
+    }
+
+    #[test]
+    fn set_active_skill_rejects_locked_fine_tuning() {
+        let mut state = GameState::new_fresh_start(0);
+        apply_skill_level(
+            &mut state,
+            "scraping",
+            LABELLING_UNLOCK_SCRAPING_LEVEL,
+        )
+        .expect("set scraping level");
+        refresh_skill_unlocks(&mut state);
+
+        let error = set_active_skill(&mut state, "fine-tuning").expect_err("locked skill");
+        assert_eq!(
+            error,
+            SetActiveSkillError::SkillLocked("fine-tuning".to_string())
+        );
+    }
+
+    #[test]
+    fn set_active_skill_allows_fine_tuning_when_unlocked() {
+        let mut state = GameState::new_fresh_start(0);
+        apply_skill_level(
+            &mut state,
+            "scraping",
+            LABELLING_UNLOCK_SCRAPING_LEVEL,
+        )
+        .expect("set scraping level");
+        refresh_skill_unlocks(&mut state);
+        apply_skill_level(&mut state, "labelling", 10).expect("set labelling level");
+        refresh_skill_unlocks(&mut state);
+
+        set_active_skill(&mut state, "fine-tuning").expect("activate fine-tuning");
+
+        assert_eq!(state.active_skill, SkillId::fine_tuning());
     }
 
     #[test]

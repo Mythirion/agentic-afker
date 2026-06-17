@@ -17,6 +17,7 @@ const scrapingSkill: SkillSnapshot = {
   isActive: true,
   isLocked: false,
   rawData: 0,
+  labelledData: 0,
 };
 
 const devMenuCallbacks = {

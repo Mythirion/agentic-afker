@@ -13,6 +13,10 @@ impl SkillId {
         Self("labelling".to_string())
     }
 
+    pub fn fine_tuning() -> Self {
+        Self("fine-tuning".to_string())
+    }
+
     pub fn idle() -> Self {
         Self(String::new())
     }

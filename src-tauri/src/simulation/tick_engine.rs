@@ -7,6 +7,9 @@ const SCRAPING_XP_PER_TICK: u64 = 1;
 const LABELLING_XP_PER_TICK: u64 = 1;
 const LABELLING_TOKENS_PER_TICK: u64 = 1;
 const LABELLING_RAW_DATA_PER_TICK: u64 = 1;
+const FINE_TUNING_XP_PER_TICK: u64 = 1;
+const FINE_TUNING_TOKENS_PER_TICK: u64 = 2;
+const FINE_TUNING_LABELLED_DATA_PER_TICK: u64 = 1;
 
 pub fn advance(state: &mut GameState, elapsed_ms: u64) {
     let ticks = elapsed_ms / TICK_MS;
@@ -27,6 +30,8 @@ fn process_tick(state: &mut GameState) {
         apply_scraping_tick(state);
     } else if state.active_skill == SkillId::labelling() {
         apply_labelling_tick(state);
+    } else if state.active_skill == SkillId::fine_tuning() {
+        apply_fine_tuning_tick(state);
     }
 }
 
@@ -63,10 +68,41 @@ fn apply_labelling_tick(state: &mut GameState) {
     let (level, xp) = apply_xp(labelling.level, labelling.xp, LABELLING_XP_PER_TICK);
     labelling.level = level;
     labelling.xp = xp;
+    labelling.resources = labelling.resources.saturating_add(1);
 
     state.tokens = state
         .tokens
         .saturating_add(LABELLING_TOKENS_PER_TICK);
+}
+
+fn apply_fine_tuning_tick(state: &mut GameState) {
+    let labelled_data = state
+        .skills
+        .get(&SkillId::labelling())
+        .expect("labelling skill exists")
+        .resources;
+
+    if labelled_data < FINE_TUNING_LABELLED_DATA_PER_TICK {
+        return;
+    }
+
+    state
+        .skills
+        .get_mut(&SkillId::labelling())
+        .expect("labelling skill exists")
+        .resources -= FINE_TUNING_LABELLED_DATA_PER_TICK;
+
+    let fine_tuning = state
+        .skills
+        .get_mut(&SkillId::fine_tuning())
+        .expect("fine-tuning skill exists");
+    let (level, xp) = apply_xp(fine_tuning.level, fine_tuning.xp, FINE_TUNING_XP_PER_TICK);
+    fine_tuning.level = level;
+    fine_tuning.xp = xp;
+
+    state.tokens = state
+        .tokens
+        .saturating_add(FINE_TUNING_TOKENS_PER_TICK);
 }
 
 #[cfg(test)]
@@ -133,6 +169,7 @@ mod tests {
         assert_eq!(state.tokens, 10);
         assert_eq!(state.scraping().resources, 0);
         assert_eq!(state.skills.get(&SkillId::labelling()).unwrap().xp, 10);
+        assert_eq!(state.skills.get(&SkillId::labelling()).unwrap().resources, 10);
     }
 
     #[test]
@@ -145,5 +182,53 @@ mod tests {
         advance(&mut state, 1_000);
 
         assert_eq!(state.tokens, 0);
+    }
+
+    #[test]
+    fn fine_tuning_produces_double_tokens_and_consumes_labelled_data() {
+        let mut state = GameState::new_scraping_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 5).expect("unlock scraping");
+        crate::simulation::refresh_skill_unlocks(&mut state);
+        crate::dev_menu::apply_skill_level(&mut state, "labelling", 10).expect("unlock fine-tuning");
+        crate::simulation::refresh_skill_unlocks(&mut state);
+        {
+            let labelling = state.skills.get_mut(&SkillId::labelling()).unwrap();
+            labelling.resources = 5;
+        }
+        crate::simulation::set_active_skill(&mut state, "fine-tuning").expect("activate fine-tuning");
+
+        advance(&mut state, 500);
+
+        assert_eq!(state.tokens, 10);
+        assert_eq!(state.skills.get(&SkillId::labelling()).unwrap().resources, 0);
+        assert_eq!(state.skills.get(&SkillId::fine_tuning()).unwrap().xp, 5);
+    }
+
+    #[test]
+    fn full_pipeline_chain_from_scraping_to_fine_tuning() {
+        let mut state = GameState::new_scraping_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 5).expect("unlock labelling");
+        crate::simulation::refresh_skill_unlocks(&mut state);
+        {
+            let scraping = state.skills.get_mut(&SkillId::scraping()).unwrap();
+            scraping.resources = 20;
+        }
+        crate::simulation::set_active_skill(&mut state, "labelling").expect("activate labelling");
+
+        advance(&mut state, 2_000);
+
+        assert_eq!(state.scraping().resources, 0);
+        assert_eq!(state.skills.get(&SkillId::labelling()).unwrap().resources, 20);
+        assert_eq!(state.tokens, 20);
+
+        crate::dev_menu::apply_skill_level(&mut state, "labelling", 10).expect("unlock fine-tuning");
+        crate::simulation::refresh_skill_unlocks(&mut state);
+        crate::simulation::set_active_skill(&mut state, "fine-tuning").expect("activate fine-tuning");
+
+        advance(&mut state, 1_000);
+
+        assert_eq!(state.skills.get(&SkillId::labelling()).unwrap().resources, 10);
+        assert_eq!(state.tokens, 40);
+        assert_eq!(state.skills.get(&SkillId::fine_tuning()).unwrap().xp, 10);
     }
 }

@@ -6,8 +6,8 @@ use crate::persistence::SaveRepository;
 use crate::simulation::{
     advance,
     set_active_skill as apply_active_skill,
-    ALPHA_PIPELINE_SKILLS, GameState, SkillId, is_skill_locked, labelling_prerequisite_text,
-    progress_within_level, refresh_skill_unlocks,
+    ALPHA_PIPELINE_SKILLS, GameState, SkillId, fine_tuning_prerequisite_text, is_skill_locked,
+    labelling_prerequisite_text, progress_within_level, refresh_skill_unlocks,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -32,6 +32,7 @@ pub struct SkillSnapshot {
     pub is_locked: bool,
     pub prerequisite: Option<String>,
     pub raw_data: u64,
+    pub labelled_data: u64,
 }
 
 #[derive(Clone, Serialize)]
@@ -200,18 +201,23 @@ fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
     let is_locked = is_skill_locked(state, skill_id);
     let is_active = state.active_skill == id;
 
-    let (level, xp, raw_data) = state
+    let (level, xp, raw_data, labelled_data) = state
         .skills
         .get(&id)
-        .map(|skill| (skill.level, skill.xp, skill.resources))
-        .unwrap_or((1, 0, 0));
+        .map(|skill| (skill.level, skill.xp, skill.resources, skill.resources))
+        .unwrap_or((1, 0, 0, 0));
 
     let raw_data = if skill_id == "scraping" { raw_data } else { 0 };
+    let labelled_data = if skill_id == "labelling" { labelled_data } else { 0 };
 
     let (xp_into_level, xp_to_next_level, level_progress) = progress_within_level(level, xp);
 
-    let prerequisite = if is_locked && skill_id == "labelling" {
-        Some(labelling_prerequisite_text().to_string())
+    let prerequisite = if is_locked {
+        match skill_id {
+            "labelling" => Some(labelling_prerequisite_text().to_string()),
+            "fine-tuning" => Some(fine_tuning_prerequisite_text().to_string()),
+            _ => None,
+        }
     } else {
         None
     };
@@ -227,6 +233,7 @@ fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
         is_locked,
         prerequisite,
         raw_data,
+        labelled_data,
     }
 }
 
@@ -290,7 +297,7 @@ mod tests {
         assert_eq!(snapshot.active_skill, "");
         assert!(snapshot.skills.iter().all(|skill| !skill.is_active));
         assert_eq!(snapshot.total_level, 1);
-        assert_eq!(snapshot.skills.len(), 2);
+        assert_eq!(snapshot.skills.len(), 3);
 
         let labelling = snapshot
             .skills
@@ -301,6 +308,17 @@ mod tests {
         assert_eq!(
             labelling.prerequisite.as_deref(),
             Some("Requires Scraping Lv 5")
+        );
+
+        let fine_tuning = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "fine-tuning")
+            .expect("fine-tuning row");
+        assert!(fine_tuning.is_locked);
+        assert_eq!(
+            fine_tuning.prerequisite.as_deref(),
+            Some("Requires Labelling Lv 10")
         );
     }
 
@@ -319,6 +337,25 @@ mod tests {
 
         assert!(!labelling.is_locked);
         assert!(labelling.prerequisite.is_none());
+    }
+
+    #[test]
+    fn snapshot_unlocks_fine_tuning_when_labelling_reaches_threshold() {
+        let mut state = GameState::new_fresh_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 5).expect("level scraping");
+        refresh_skill_unlocks(&mut state);
+        crate::dev_menu::apply_skill_level(&mut state, "labelling", 10).expect("level labelling");
+        refresh_skill_unlocks(&mut state);
+
+        let snapshot = to_snapshot(&state);
+        let fine_tuning = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "fine-tuning")
+            .expect("fine-tuning row");
+
+        assert!(!fine_tuning.is_locked);
+        assert!(fine_tuning.prerequisite.is_none());
     }
 
     #[test]
@@ -374,5 +411,12 @@ mod tests {
 
         assert_eq!(scraping.raw_data, 3);
         assert_eq!(snapshot.tokens, 5);
+
+        let labelling = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.id == "labelling")
+            .expect("labelling skill");
+        assert_eq!(labelling.labelled_data, 5);
     }
 }
