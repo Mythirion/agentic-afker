@@ -124,7 +124,102 @@ body,
 
 .game-main {
   flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  gap: 20px;
   padding: 20px;
+}
+
+.upgrade-shop__title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upgrade-shop__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upgrade-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #1b1b26;
+}
+
+.upgrade-row--purchased {
+  border-color: rgba(155, 231, 181, 0.35);
+  background: rgba(62, 207, 142, 0.08);
+}
+
+.upgrade-row--placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upgrade-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upgrade-row__name {
+  font-weight: 600;
+}
+
+.upgrade-row__cost {
+  font-size: 13px;
+  color: #ffd8a8;
+}
+
+.upgrade-row__description,
+.upgrade-row__lock {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.upgrade-row__lock {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.upgrade-row__badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9be7b5;
+}
+
+.upgrade-row__buy {
+  align-self: start;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 216, 168, 0.45);
+  border-radius: 6px;
+  background: rgba(255, 216, 168, 0.12);
+  color: #ffd8a8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upgrade-row__buy:hover:not(:disabled) {
+  background: rgba(255, 216, 168, 0.22);
+}
+
+.upgrade-row__buy:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .game-main__placeholder {

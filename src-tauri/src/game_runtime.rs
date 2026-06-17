@@ -5,9 +5,11 @@ use crate::dev_menu::{
 use crate::persistence::SaveRepository;
 use crate::simulation::{
     advance,
+    purchase_upgrade as apply_purchase_upgrade,
     set_active_skill as apply_active_skill,
-    ALPHA_PIPELINE_SKILLS, GameState, SkillId, fine_tuning_prerequisite_text, is_skill_locked,
-    labelling_prerequisite_text, progress_within_level, refresh_skill_unlocks,
+    upgrade_snapshots,
+    ALPHA_PIPELINE_SKILLS, GameState, PurchaseError, SkillId, fine_tuning_prerequisite_text,
+    is_skill_locked, labelling_prerequisite_text, progress_within_level, refresh_skill_unlocks,
 };
 use serde::Serialize;
 use std::path::PathBuf;
@@ -37,11 +39,24 @@ pub struct SkillSnapshot {
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct UpgradeSnapshot {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: u64,
+    pub is_purchased: bool,
+    pub can_purchase: bool,
+    pub lock_reason: Option<String>,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameStateSnapshot {
     pub active_skill: String,
     pub skills: Vec<SkillSnapshot>,
     pub tokens: u64,
     pub total_level: u32,
+    pub upgrades: Vec<UpgradeSnapshot>,
     pub last_tick_at: i64,
 }
 
@@ -179,6 +194,15 @@ impl GameRuntime {
         *self.ticks_since_save.lock().expect("save ticks lock") = 0;
         self.emit_snapshot(app)
     }
+
+    pub fn purchase_upgrade(&self, app: &AppHandle, upgrade_id: &str) -> Result<(), String> {
+        {
+            let mut state = self.state.lock().expect("game state lock");
+            apply_purchase_upgrade(&mut state, upgrade_id).map_err(purchase_error_to_string)?;
+        }
+
+        self.persist_and_emit(app)
+    }
 }
 
 pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
@@ -192,6 +216,18 @@ pub fn to_snapshot(state: &GameState) -> GameStateSnapshot {
         skills,
         tokens: state.tokens,
         total_level: state.total_level(),
+        upgrades: upgrade_snapshots(state)
+            .into_iter()
+            .map(|offer| UpgradeSnapshot {
+                id: offer.id,
+                name: offer.name,
+                description: offer.description,
+                cost: offer.cost,
+                is_purchased: offer.is_purchased,
+                can_purchase: offer.can_purchase,
+                lock_reason: offer.lock_reason,
+            })
+            .collect(),
         last_tick_at: state.last_tick_at,
     }
 }
@@ -235,6 +271,10 @@ fn skill_snapshot(state: &GameState, skill_id: &str) -> SkillSnapshot {
         raw_data,
         labelled_data,
     }
+}
+
+fn purchase_error_to_string(error: PurchaseError) -> String {
+    error.to_string()
 }
 
 pub fn now_ms() -> i64 {
@@ -282,6 +322,15 @@ pub fn set_active_skill(
     app: AppHandle,
 ) -> Result<(), String> {
     runtime.activate_skill(&app, &skill_id)
+}
+
+#[tauri::command]
+pub fn purchase_upgrade(
+    upgrade_id: String,
+    runtime: State<'_, GameRuntime>,
+    app: AppHandle,
+) -> Result<(), String> {
+    runtime.purchase_upgrade(&app, &upgrade_id)
 }
 
 #[cfg(test)]
@@ -418,5 +467,22 @@ mod tests {
             .find(|skill| skill.id == "labelling")
             .expect("labelling skill");
         assert_eq!(labelling.labelled_data, 5);
+    }
+
+    #[test]
+    fn snapshot_lists_unlocked_skill_upgrades() {
+        let mut state = GameState::new_scraping_start(0);
+        crate::dev_menu::apply_skill_level(&mut state, "scraping", 10).expect("level scraping");
+        state.tokens = 250;
+
+        let snapshot = to_snapshot(&state);
+        let upgrade = snapshot
+            .upgrades
+            .iter()
+            .find(|upgrade| upgrade.id == "scraping-10")
+            .expect("scraping-10 upgrade");
+
+        assert_eq!(upgrade.cost, 100);
+        assert!(upgrade.can_purchase);
     }
 }

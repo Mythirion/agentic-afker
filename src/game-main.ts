@@ -4,6 +4,7 @@ import { startCurrentActionProgressLoop } from "./game-window/action-progress";
 import { mountDevMenu, renderDevMenu, syncDevMenuFromSnapshot } from "./game-window/dev-menu";
 import {
   bindSkillListActions,
+  bindUpgradeShopActions,
   hasActiveSkill,
   mountGameWindow,
   renderGameWindowState,
@@ -39,6 +40,9 @@ async function bootstrapGameWindow(root: HTMLElement): Promise<void> {
     renderGameWindowState(root, snapshot);
     bindSkillListActions(root, async (skillId) => {
       await invoke("set_active_skill", { skillId });
+    });
+    bindUpgradeShopActions(root, async (upgradeId) => {
+      await invoke("purchase_upgrade", { upgradeId });
     });
 
     if (devMenuRoot) {

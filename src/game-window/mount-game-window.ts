@@ -17,11 +17,22 @@ export interface SkillSnapshot {
   labelledData: number;
 }
 
+export interface UpgradeSnapshot {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  isPurchased: boolean;
+  canPurchase: boolean;
+  lockReason?: string;
+}
+
 export interface GameWindowSnapshot {
   activeSkill: string;
   skills: SkillSnapshot[];
   tokens: number;
   totalLevel: number;
+  upgrades: UpgradeSnapshot[];
   lastTickAt: number;
 }
 
@@ -162,6 +173,45 @@ function renderSkillRow(skill: SkillSnapshot): string {
   `;
 }
 
+function renderUpgradeRow(upgrade: UpgradeSnapshot): string {
+  if (upgrade.isPurchased) {
+    return `
+    <li class="upgrade-row upgrade-row--purchased" data-testid="upgrade-${upgrade.id}">
+      <div class="upgrade-row__header">
+        <span class="upgrade-row__name">${upgrade.name}</span>
+        <span class="upgrade-row__badge" data-testid="upgrade-purchased-${upgrade.id}">Owned</span>
+      </div>
+      <p class="upgrade-row__description">${upgrade.description}</p>
+    </li>
+  `;
+  }
+
+  const disabled = upgrade.canPurchase ? "" : " disabled";
+  const lockReason = upgrade.lockReason
+    ? `<p class="upgrade-row__lock" data-testid="upgrade-lock-${upgrade.id}">${upgrade.lockReason}</p>`
+    : "";
+
+  return `
+    <li class="upgrade-row" data-testid="upgrade-${upgrade.id}">
+      <div class="upgrade-row__header">
+        <span class="upgrade-row__name">${upgrade.name}</span>
+        <span class="upgrade-row__cost" data-testid="upgrade-cost-${upgrade.id}">${upgrade.cost} Tokens</span>
+      </div>
+      <p class="upgrade-row__description">${upgrade.description}</p>
+      ${lockReason}
+      <button
+        type="button"
+        class="upgrade-row__buy"
+        data-action="purchase-upgrade"
+        data-upgrade-id="${upgrade.id}"
+        data-testid="purchase-upgrade-${upgrade.id}"${disabled}
+      >
+        Purchase
+      </button>
+    </li>
+  `;
+}
+
 export function renderGameWindowStub(root: HTMLElement): void {
   root.innerHTML = `
     <header class="game-header" aria-label="Game Window header">
@@ -182,6 +232,12 @@ export function renderGameWindowStub(root: HTMLElement): void {
           <li class="skill-row skill-row--placeholder">Waiting for simulation…</li>
         </ul>
       </section>
+      <aside class="upgrade-shop" aria-label="Upgrade shop">
+        <h2 class="upgrade-shop__title">Upgrades</h2>
+        <ul class="upgrade-shop__items" data-testid="upgrade-list">
+          <li class="upgrade-row upgrade-row--placeholder">No upgrades available yet</li>
+        </ul>
+      </aside>
     </main>
   `;
 }
@@ -193,11 +249,12 @@ export function renderGameWindowState(
   const tokenBalance = root.querySelector('[data-testid="token-balance"]');
   const totalLevel = root.querySelector('[data-testid="total-level"]');
   const skillList = root.querySelector('[data-testid="skill-list"]');
+  const upgradeList = root.querySelector('[data-testid="upgrade-list"]');
   const actionName = root.querySelector('[data-testid="current-action-name"]');
   const actionBar = root.querySelector('[data-testid="current-action-progress"]');
   const currentAction = root.querySelector('[data-testid="current-action"]');
 
-  if (!tokenBalance || !totalLevel || !skillList || !actionName || !actionBar || !currentAction) {
+  if (!tokenBalance || !totalLevel || !skillList || !upgradeList || !actionName || !actionBar || !currentAction) {
     throw new Error("Game Window layout is missing expected elements");
   }
 
@@ -209,6 +266,32 @@ export function renderGameWindowState(
   actionBar.setAttribute("aria-label", `${activeSkillLabel} action progress`);
   currentAction.classList.toggle("current-action--idle", idle);
   skillList.innerHTML = snapshot.skills.map(renderSkillRow).join("");
+  upgradeList.innerHTML =
+    snapshot.upgrades.length > 0
+      ? snapshot.upgrades.map(renderUpgradeRow).join("")
+      : '<li class="upgrade-row upgrade-row--placeholder">No upgrades available yet</li>';
+}
+
+export function bindUpgradeShopActions(
+  root: HTMLElement,
+  onPurchaseUpgrade: (upgradeId: string) => Promise<void>,
+): void {
+  root.querySelectorAll<HTMLButtonElement>('[data-action="purchase-upgrade"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.disabled) {
+        return;
+      }
+
+      const upgradeId = button.dataset.upgradeId;
+      if (!upgradeId) {
+        return;
+      }
+
+      void onPurchaseUpgrade(upgradeId).catch((error: unknown) => {
+        console.error("failed to purchase upgrade", error);
+      });
+    });
+  });
 }
 
 export function bindSkillListActions(

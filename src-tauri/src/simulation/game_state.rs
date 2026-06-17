@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SkillId(pub String);
@@ -48,6 +48,7 @@ pub struct GameState {
     pub skills: HashMap<SkillId, SkillState>,
     pub active_skill: SkillId,
     pub tokens: u64,
+    pub purchased_upgrades: HashSet<String>,
     pub form_stage: u32,
     pub last_tick_at: i64,
     pub offline_cap_hours: u32,
@@ -62,6 +63,7 @@ impl GameState {
             skills,
             active_skill: SkillId::idle(),
             tokens: 0,
+            purchased_upgrades: HashSet::new(),
             form_stage: 1,
             last_tick_at,
             offline_cap_hours: 8,
