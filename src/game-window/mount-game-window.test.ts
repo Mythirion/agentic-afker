@@ -20,6 +20,7 @@ const scrapingSnapshot: GameWindowSnapshot = {
       isActive: true,
       isLocked: false,
       rawData: 0,
+      labelledData: 0,
     },
   ],
   tokens: 0,
@@ -60,6 +61,7 @@ describe("mountGameWindow", () => {
           isActive: false,
           isLocked: false,
           rawData: 0,
+      labelledData: 0,
         },
       ],
       tokens: 0,
@@ -92,6 +94,7 @@ describe("mountGameWindow", () => {
           isActive: false,
           isLocked: false,
           rawData: 0,
+      labelledData: 0,
         },
       ],
       tokens: 0,
@@ -124,6 +127,7 @@ describe("mountGameWindow", () => {
           isActive: true,
           isLocked: false,
           rawData: 0,
+      labelledData: 0,
         },
       ],
     };
@@ -171,6 +175,7 @@ describe("mountGameWindow", () => {
           isActive: true,
           isLocked: false,
           rawData: 17,
+          labelledData: 0,
         },
         {
           id: "labelling",
@@ -183,6 +188,7 @@ describe("mountGameWindow", () => {
           isLocked: true,
           prerequisite: "Requires Scraping Lv 5",
           rawData: 0,
+      labelledData: 0,
         },
       ],
       tokens: 12,
@@ -215,6 +221,7 @@ describe("mountGameWindow", () => {
           isActive: true,
           isLocked: false,
           rawData: 42,
+          labelledData: 0,
         },
         {
           id: "labelling",
@@ -227,6 +234,7 @@ describe("mountGameWindow", () => {
           isLocked: true,
           prerequisite: "Requires Scraping Lv 5",
           rawData: 0,
+      labelledData: 0,
         },
       ],
       tokens: 0,
@@ -238,5 +246,120 @@ describe("mountGameWindow", () => {
       root.querySelector('[data-testid="skill-raw-data-scraping"]')?.textContent?.trim(),
     ).toBe("Raw data: 42");
     expect(root.querySelector('[data-testid="skill-raw-data-labelling"]')).toBeNull();
+  });
+
+  it("renders all three pipeline skills with fine-tuning locked prerequisite", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "scraping",
+      skills: [
+        {
+          id: "scraping",
+          level: 5,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: true,
+          isLocked: false,
+          rawData: 0,
+          labelledData: 0,
+        },
+        {
+          id: "labelling",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: false,
+          rawData: 0,
+          labelledData: 0,
+        },
+        {
+          id: "fine-tuning",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: true,
+          prerequisite: "Requires Labelling Lv 10",
+          rawData: 0,
+          labelledData: 0,
+        },
+      ],
+      tokens: 0,
+      totalLevel: 6,
+      lastTickAt: 0,
+    });
+
+    expect(root.querySelectorAll('[data-testid^="skill-"]').length).toBeGreaterThanOrEqual(3);
+    expect(root.querySelector('[data-testid="skill-locked-fine-tuning"]')).not.toBeNull();
+    expect(
+      root.querySelector('[data-testid="skill-prerequisite-fine-tuning"]')?.textContent?.trim(),
+    ).toBe("Requires Labelling Lv 10");
+    expect(root.querySelector('[data-testid="start-skill-fine-tuning"]')).toBeNull();
+  });
+
+  it("renders labelling labelled data on the skill row", () => {
+    const root = document.createElement("div");
+    mountGameWindow(root);
+
+    renderGameWindowState(root, {
+      activeSkill: "labelling",
+      skills: [
+        {
+          id: "scraping",
+          level: 5,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: false,
+          rawData: 3,
+          labelledData: 0,
+        },
+        {
+          id: "labelling",
+          level: 8,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: true,
+          isLocked: false,
+          rawData: 0,
+          labelledData: 15,
+        },
+        {
+          id: "fine-tuning",
+          level: 1,
+          xp: 0,
+          xpIntoLevel: 0,
+          xpToNextLevel: 83,
+          levelProgress: 0,
+          isActive: false,
+          isLocked: true,
+          prerequisite: "Requires Labelling Lv 10",
+          rawData: 0,
+          labelledData: 0,
+        },
+      ],
+      tokens: 12,
+      totalLevel: 13,
+      lastTickAt: 0,
+    });
+
+    expect(
+      root.querySelector('[data-testid="skill-labelled-data-labelling"]')?.textContent?.trim(),
+    ).toBe("Labelled data: 15");
+    expect(root.querySelector('[data-testid="skill-labelled-data-scraping"]')).toBeNull();
+    expect(root.querySelector('[data-testid="skill-labelled-data-fine-tuning"]')).toBeNull();
   });
 });
